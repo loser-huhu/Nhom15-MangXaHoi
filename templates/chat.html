@@ -1782,35 +1782,46 @@
         }
       }
 
+      // FIX: Sửa hàm applyBackground để không ảnh hưởng đến việc nhắn tin
       function applyBackground(filename) {
-        const chatInterface = document.getElementById("chat-interface");
         const msgList = document.getElementById("msgList");
+        if (!msgList) return;
 
-        if (!chatInterface || !msgList) return;
-
-        // Xóa overlay cũ nếu có
-        const oldOverlay = document.getElementById("chat-background-overlay");
+        // Xóa overlay cũ nếu có (chỉ xóa trong msgList)
+        const oldOverlay = msgList.querySelector(".chat-background-overlay");
         if (oldOverlay) {
           oldOverlay.remove();
         }
 
+        // Xóa lớp overlay trong chat-interface nếu có
+        const chatInterfaceOverlay = document.getElementById(
+          "chat-background-overlay",
+        );
+        if (chatInterfaceOverlay) {
+          chatInterfaceOverlay.remove();
+        }
+
         if (filename) {
-          // Thêm lớp overlay mới với ảnh nền
+          // Tạo overlay mới và thêm vào msgList
           const overlay = document.createElement("div");
-          overlay.id = "chat-background-overlay";
           overlay.className = "chat-background-overlay";
           overlay.style.backgroundImage = `url('/static/uploads/backgrounds/${filename}')`;
           overlay.style.backgroundSize = "cover";
           overlay.style.backgroundPosition = "center";
           overlay.style.backgroundRepeat = "no-repeat";
           overlay.style.opacity = "0.3";
+          overlay.style.position = "absolute";
+          overlay.style.top = "0";
+          overlay.style.left = "0";
+          overlay.style.right = "0";
+          overlay.style.bottom = "0";
+          overlay.style.zIndex = "-1"; // Đảm bảo nằm dưới nội dung
 
-          // Đặt overlay vào chat interface
-          chatInterface.appendChild(overlay);
+          // Thêm overlay vào msgList
+          msgList.appendChild(overlay);
 
-          // Đảm bảo các phần tử khác nằm trên overlay
+          // Đảm bảo msgList có position relative
           msgList.style.position = "relative";
-          msgList.style.zIndex = "1";
 
           // Lưu vào localStorage
           localStorage.setItem(`chat-bg-${currentConvId}`, filename);
@@ -1818,8 +1829,8 @@
           // Xóa ảnh nền
           msgList.style.backgroundImage = "";
 
-          // Xóa overlay
-          const overlay = document.getElementById("chat-background-overlay");
+          // Xóa lớp overlay
+          const overlay = msgList.querySelector(".chat-background-overlay");
           if (overlay) overlay.remove();
 
           // Xóa khỏi localStorage
