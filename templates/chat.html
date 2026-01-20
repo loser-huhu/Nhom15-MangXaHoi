@@ -30,7 +30,6 @@
       #messageContextMenu,
       #sidebarContextMenu {
         position: fixed;
-        transform: translate(-50%, 0);
       }
 
       /* Smooth transitions */
@@ -108,28 +107,87 @@
         background-color: rgba(59, 130, 246, 0.2); /* primary-900/20 */
       }
 
-      /* Fix background image z-index */
+      /* Chat background with proper z-index */
       .chat-background {
         position: relative;
       }
 
-      .chat-background-overlay {
+      .chat-background-image {
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
         z-index: 0;
       }
 
       .chat-messages-container {
         position: relative;
-        z-index: 1;
+        z-index: 10;
+      }
+
+      /* Message container */
+      .message-content-container {
+        backdrop-filter: blur(2px);
       }
 
       /* Fix for dropdown menu positioning */
       .dropdown-menu {
         z-index: 100;
+      }
+
+      /* Theme styles for chat messages */
+      .theme-blue .message-content:not(.mine .message-content) {
+        background-color: #e0f2fe !important; /* blue-100 */
+        color: #0c4a6e !important; /* blue-900 */
+      }
+
+      .theme-blue .mine .message-content {
+        background: linear-gradient(to right, #3b82f6, #2563eb) !important;
+        color: white !important;
+      }
+
+      .theme-green .message-content:not(.mine .message-content) {
+        background-color: #dcfce7 !important; /* green-100 */
+        color: #14532d !important; /* green-900 */
+      }
+
+      .theme-green .mine .message-content {
+        background: linear-gradient(to right, #10b981, #059669) !important;
+        color: white !important;
+      }
+
+      .theme-purple .message-content:not(.mine .message-content) {
+        background-color: #f3e8ff !important; /* purple-100 */
+        color: #4c1d95 !important; /* purple-900 */
+      }
+
+      .theme-purple .mine .message-content {
+        background: linear-gradient(to right, #8b5cf6, #7c3aed) !important;
+        color: white !important;
+      }
+
+      .theme-dark .message-content:not(.mine .message-content) {
+        background-color: #374151 !important; /* gray-700 */
+        color: #f9fafb !important; /* gray-50 */
+      }
+
+      .theme-dark .mine .message-content {
+        background: linear-gradient(to right, #1f2937, #111827) !important;
+        color: white !important;
+      }
+
+      .theme-light .message-content:not(.mine .message-content) {
+        background-color: #f9fafb !important; /* gray-50 */
+        color: #111827 !important; /* gray-900 */
+      }
+
+      .theme-light .mine .message-content {
+        background: linear-gradient(to right, #6b7280, #4b5563) !important;
+        color: white !important;
       }
     </style>
   </head>
@@ -363,6 +421,30 @@
           Chọn ảnh nền chat
         </h3>
         <div class="mb-4">
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-gray-700 dark:text-gray-300"
+              >Ảnh nền hiện tại:</span
+            >
+            <button
+              onclick="removeBackground()"
+              class="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+              id="removeBackgroundBtn"
+            >
+              Xóa ảnh nền
+            </button>
+          </div>
+          <div id="currentBackgroundPreview" class="mb-4">
+            <div
+              id="noBackgroundMessage"
+              class="text-gray-500 dark:text-gray-400 text-center py-4"
+            >
+              Chưa có ảnh nền
+            </div>
+            <img
+              id="currentBackgroundImg"
+              class="w-full h-48 object-cover rounded-xl hidden"
+            />
+          </div>
           <input
             type="file"
             id="backgroundInput"
@@ -382,7 +464,10 @@
               PNG, JPG, GIF, WEBP tối đa 5MB
             </p>
           </div>
-          <div id="backgroundPreview" class="mt-4 hidden">
+          <div id="newBackgroundPreview" class="mt-4 hidden">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Ảnh nền mới:
+            </p>
             <img
               id="previewBackground"
               class="w-full h-48 object-cover rounded-xl"
@@ -944,6 +1029,7 @@
       let selectedTheme = localStorage.getItem("theme") || "light";
       let selectedBackgroundFile = null;
       let selectedMessageForReaction = null;
+      let currentBackgroundImage = null;
 
       // Áp dụng theme từ localStorage khi tải trang
       if (selectedTheme === "dark") {
@@ -1170,16 +1256,27 @@
             selectedSidebarItemId = sidebarItem.dataset.convId;
             const menu = document.getElementById("sidebarContextMenu");
 
+            // Tính toán vị trí để menu không bị tràn ra ngoài màn hình
             const menuWidth = 180;
+            const menuHeight = 150;
             const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
 
             let left = e.clientX;
+            let top = e.clientY;
+
+            // Nếu menu sắp bị tràn bên phải, đẩy sang trái
             if (left + menuWidth > viewportWidth) {
               left = viewportWidth - menuWidth - 10;
             }
 
+            // Nếu menu sắp bị tràn phía dưới, đẩy lên trên
+            if (top + menuHeight > viewportHeight) {
+              top = viewportHeight - menuHeight - 10;
+            }
+
             menu.style.left = left + "px";
-            menu.style.top = e.clientY + "px";
+            menu.style.top = top + "px";
             menu.classList.remove("hidden");
           }
         });
@@ -1231,9 +1328,7 @@
                               </div>
                             </a>`;
         } else {
-          const bgClass = isMe
-            ? "bg-gradient-to-r from-primary-500 to-blue-400 text-white"
-            : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white message-content";
+          const bgClass = "message-content";
 
           contentHtml = `<div class="px-3 py-2 ${bgClass} rounded-2xl shadow-sm ${isMe ? "rounded-tr-none" : "rounded-tl-none"}">
                             <div class="break-words max-w-[400px] message-text">${msg.content}</div>
@@ -1705,16 +1800,13 @@
       // --- HÀM ÁP DỤNG THEME ---
       function applyTheme(theme) {
         const msgList = document.getElementById("msgList");
+        if (!msgList) return;
 
         // Xóa tất cả class theme cũ
-        msgList.classList.remove(
-          "theme-blue",
-          "theme-green",
-          "theme-purple",
-          "theme-light",
-          "theme-dark",
-          "theme-default",
-        );
+        const themes = ["blue", "green", "purple", "light", "dark", "default"];
+        themes.forEach((t) => {
+          msgList.classList.remove(`theme-${t}`);
+        });
 
         // Áp dụng theme mới
         msgList.classList.add(`theme-${theme}`);
@@ -1722,24 +1814,34 @@
         // Lưu vào localStorage
         localStorage.setItem(`chat-theme-${currentConvId}`, theme);
 
-        // Thêm CSS động cho theme
-        if (!document.getElementById("theme-styles")) {
-          const style = document.createElement("style");
-          style.id = "theme-styles";
-          style.textContent = `
-                .theme-blue { background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%) !important; }
-                .theme-green { background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%) !important; }
-                .theme-purple { background: linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%) !important; }
-                .theme-dark { background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important; }
-                .theme-light { background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important; }
-                .theme-default { background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important; }
-            `;
-          document.head.appendChild(style);
+        // Cập nhật lại tất cả tin nhắn để áp dụng màu mới
+        if (currentConv && currentConv.messages) {
+          const msgBox = document.getElementById("msgList");
+          if (msgBox) {
+            msgBox.innerHTML = "";
+            currentConv.messages.forEach(renderMsg);
+          }
         }
       }
 
       // --- HÀM ĐỔI ẢNH NỀN ---
       function openBackgroundModal() {
+        // Hiển thị ảnh nền hiện tại nếu có
+        const currentBgImg = document.getElementById("currentBackgroundImg");
+        const noBgMessage = document.getElementById("noBackgroundMessage");
+        const removeBtn = document.getElementById("removeBackgroundBtn");
+
+        if (currentBackgroundImage) {
+          currentBgImg.src = `/static/uploads/backgrounds/${currentBackgroundImage}`;
+          currentBgImg.classList.remove("hidden");
+          noBgMessage.classList.add("hidden");
+          removeBtn.classList.remove("hidden");
+        } else {
+          currentBgImg.classList.add("hidden");
+          noBgMessage.classList.remove("hidden");
+          removeBtn.classList.add("hidden");
+        }
+
         toggleModal("backgroundModal");
         document.getElementById("moreOptionsDropdown").classList.add("hidden");
       }
@@ -1750,7 +1852,7 @@
           const preview = document.getElementById("previewBackground");
           preview.src = URL.createObjectURL(selectedBackgroundFile);
           document
-            .getElementById("backgroundPreview")
+            .getElementById("newBackgroundPreview")
             .classList.remove("hidden");
         }
       };
@@ -1782,59 +1884,74 @@
         }
       }
 
-      // FIX: Sửa hàm applyBackground để không ảnh hưởng đến việc nhắn tin
+      // Hàm áp dụng ảnh nền
       function applyBackground(filename) {
         const msgList = document.getElementById("msgList");
         if (!msgList) return;
 
-        // Xóa overlay cũ nếu có (chỉ xóa trong msgList)
-        const oldOverlay = msgList.querySelector(".chat-background-overlay");
-        if (oldOverlay) {
-          oldOverlay.remove();
-        }
+        // Xóa background image cũ
+        msgList.style.backgroundImage = "";
 
-        // Xóa lớp overlay trong chat-interface nếu có
-        const chatInterfaceOverlay = document.getElementById(
-          "chat-background-overlay",
+        // Xóa các div background cũ
+        const oldBackgrounds = msgList.querySelectorAll(
+          ".chat-background-image",
         );
-        if (chatInterfaceOverlay) {
-          chatInterfaceOverlay.remove();
-        }
+        oldBackgrounds.forEach((bg) => bg.remove());
 
         if (filename) {
-          // Tạo overlay mới và thêm vào msgList
-          const overlay = document.createElement("div");
-          overlay.className = "chat-background-overlay";
-          overlay.style.backgroundImage = `url('/static/uploads/backgrounds/${filename}')`;
-          overlay.style.backgroundSize = "cover";
-          overlay.style.backgroundPosition = "center";
-          overlay.style.backgroundRepeat = "no-repeat";
-          overlay.style.opacity = "0.3";
-          overlay.style.position = "absolute";
-          overlay.style.top = "0";
-          overlay.style.left = "0";
-          overlay.style.right = "0";
-          overlay.style.bottom = "0";
-          overlay.style.zIndex = "-1"; // Đảm bảo nằm dưới nội dung
+          // Tạo div mới cho background
+          const bgDiv = document.createElement("div");
+          bgDiv.className = "chat-background-image";
+          bgDiv.style.backgroundImage = `url('/static/uploads/backgrounds/${filename}')`;
+          msgList.appendChild(bgDiv);
 
-          // Thêm overlay vào msgList
-          msgList.appendChild(overlay);
-
-          // Đảm bảo msgList có position relative
-          msgList.style.position = "relative";
+          currentBackgroundImage = filename;
 
           // Lưu vào localStorage
           localStorage.setItem(`chat-bg-${currentConvId}`, filename);
         } else {
-          // Xóa ảnh nền
-          msgList.style.backgroundImage = "";
-
-          // Xóa lớp overlay
-          const overlay = msgList.querySelector(".chat-background-overlay");
-          if (overlay) overlay.remove();
-
+          currentBackgroundImage = null;
           // Xóa khỏi localStorage
           localStorage.removeItem(`chat-bg-${currentConvId}`);
+        }
+      }
+
+      // Hàm xóa ảnh nền
+      async function removeBackground() {
+        if (!currentConvId || !currentBackgroundImage) return;
+
+        if (!confirm("Bạn có chắc chắn muốn xóa ảnh nền này không?")) return;
+
+        try {
+          const res = await fetch(
+            `/chat/conversation/${currentConvId}/remove-background`,
+            {
+              method: "POST",
+            },
+          );
+
+          const data = await res.json();
+          if (data.success) {
+            // Xóa ảnh nền khỏi giao diện
+            applyBackground(null);
+            alert("Đã xóa ảnh nền");
+
+            // Cập nhật modal
+            const currentBgImg = document.getElementById(
+              "currentBackgroundImg",
+            );
+            const noBgMessage = document.getElementById("noBackgroundMessage");
+            const removeBtn = document.getElementById("removeBackgroundBtn");
+
+            currentBgImg.classList.add("hidden");
+            noBgMessage.classList.remove("hidden");
+            removeBtn.classList.add("hidden");
+          }
+        } catch (e) {
+          console.error("Remove background error:", e);
+          // Vẫn xóa trên client nếu server lỗi
+          applyBackground(null);
+          alert("Đã xóa ảnh nền trên giao diện");
         }
       }
 
@@ -1983,18 +2100,18 @@
 
             // ÁP DỤNG ẢNH NỀN
             if (currentConv.settings && currentConv.settings.background_image) {
+              currentBackgroundImage = currentConv.settings.background_image;
               applyBackground(currentConv.settings.background_image);
             } else {
               // Kiểm tra localStorage
               const savedBg = localStorage.getItem(`chat-bg-${currentConvId}`);
               if (savedBg) {
+                currentBackgroundImage = savedBg;
                 applyBackground(savedBg);
               } else {
                 // Xóa ảnh nền nếu có
-                const overlay = document.getElementById(
-                  "chat-background-overlay",
-                );
-                if (overlay) overlay.remove();
+                currentBackgroundImage = null;
+                applyBackground(null);
               }
             }
 
