@@ -321,12 +321,16 @@ def set_nickname(conversation_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 13. ĐỔI THEME CHAT
+# Tìm và sửa function này
 @chat_bp.route('/conversation/<int:conversation_id>/set-theme', methods=['POST'])
 @login_required
 def set_conversation_theme(conversation_id):
     try:
         data = request.get_json()
         theme = data.get('theme', 'default').strip()
+        
+        # THÊM import ConversationSettings nếu chưa có
+        from models.conversation import ConversationSettings
         
         conv = Conversation.query.get_or_404(conversation_id)
         
@@ -352,6 +356,7 @@ def set_conversation_theme(conversation_id):
         
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 14. XEM HỒ SƠ

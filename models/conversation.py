@@ -181,3 +181,19 @@ class ConversationSettings(db.Model):
     
     user = db.relationship('User', backref='conversation_settings')
     conversation = db.relationship('Conversation', backref='user_settings')
+
+    # Thêm model Reaction
+class Reaction(db.Model):
+    __tablename__ = 'reactions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    message_id = db.Column(db.Integer, db.ForeignKey('messages.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    reaction_type = db.Column(db.String(20), nullable=False)  # like, love, haha, wow, sad, angry
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Quan hệ
+    message = db.relationship('Message', backref='reactions')
+    user = db.relationship('User', backref='user_reactions')
+    
+    __table_args__ = (db.UniqueConstraint('message_id', 'user_id', name='unique_message_user_reaction'),)
