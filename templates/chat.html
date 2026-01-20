@@ -201,7 +201,7 @@
         <div class="grid grid-cols-3 gap-4 mb-6">
           <div
             class="theme-option bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-600 rounded-xl p-4 cursor-pointer hover:scale-105 transition-transform"
-            onclick="selectTheme('blue')"
+            onclick="selectTheme('blue', event)" <!-- CHANGED -->
           >
             <div
               class="h-8 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 mb-3"
@@ -214,7 +214,7 @@
           </div>
           <div
             class="theme-option bg-green-50 dark:bg-green-900/20 border-2 border-transparent hover:border-green-300 dark:hover:border-green-600 rounded-xl p-4 cursor-pointer hover:scale-105 transition-transform"
-            onclick="selectTheme('green')"
+            onclick="selectTheme('green', event)" <!-- CHANGED -->
           >
             <div
               class="h-8 rounded-lg bg-gradient-to-r from-green-500 to-green-600 mb-3"
@@ -227,7 +227,7 @@
           </div>
           <div
             class="theme-option bg-purple-50 dark:bg-purple-900/20 border-2 border-transparent hover:border-purple-300 dark:hover:border-purple-600 rounded-xl p-4 cursor-pointer hover:scale-105 transition-transform"
-            onclick="selectTheme('purple')"
+            onclick="selectTheme('purple', event)" <!-- CHANGED -->
           >
             <div
               class="h-8 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 mb-3"
@@ -242,7 +242,7 @@
         <div class="grid grid-cols-2 gap-4 mb-6">
           <div
             class="theme-option bg-white dark:bg-gray-700 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600 rounded-xl p-4 cursor-pointer hover:scale-105 transition-transform"
-            onclick="selectTheme('light')"
+            onclick="selectTheme('light', event)" <!-- CHANGED -->
           >
             <div
               class="h-8 rounded-lg bg-gradient-to-r from-gray-100 to-gray-300 dark:from-gray-600 dark:to-gray-800 mb-3"
@@ -255,7 +255,7 @@
           </div>
           <div
             class="theme-option bg-gray-800 dark:bg-gray-900 border-2 border-transparent hover:border-gray-600 dark:hover:border-gray-700 rounded-xl p-4 cursor-pointer hover:scale-105 transition-transform"
-            onclick="selectTheme('dark')"
+            onclick="selectTheme('dark', event)" <!-- CHANGED -->
           >
             <div
               class="h-8 rounded-lg bg-gradient-to-r from-gray-700 to-gray-900 mb-3"
@@ -279,7 +279,200 @@
         </div>
       </div>
     </div>
+    <!-- thêm -->
+    <!-- Background Modal -->
+    <div
+      id="backgroundModal"
+      class="fixed inset-0 z-40 bg-black/50 hidden items-center justify-center p-4"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl"
+      >
+        <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">
+          Chọn ảnh nền chat
+        </h3>
+        <div class="mb-4">
+          <input
+            type="file"
+            id="backgroundInput"
+            accept="image/*"
+            class="hidden"
+          />
+          <div
+            class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            onclick="document.getElementById('backgroundInput').click()"
+          >
+            <i
+              data-lucide="upload"
+              class="w-12 h-12 mx-auto text-gray-400 mb-3"
+            ></i>
+            <p class="text-gray-600 dark:text-gray-400">Nhấn để chọn ảnh nền</p>
+            <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+              PNG, JPG, GIF, WEBP tối đa 5MB
+            </p>
+          </div>
+          <div id="backgroundPreview" class="mt-4 hidden">
+            <img
+              id="previewBackground"
+              class="w-full h-48 object-cover rounded-xl"
+            />
+          </div>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button
+            onclick="toggleModal('backgroundModal')"
+            class="px-5 py-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+          >
+            Hủy
+          </button>
+          <button
+            onclick="saveBackground()"
+            class="px-5 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium"
+          >
+            Áp dụng
+          </button>
+        </div>
+      </div>
+    </div>
 
+    <!-- Emoji Picker -->
+    <div
+      id="emojiPicker"
+      class="fixed bottom-24 right-6 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-2xl shadow-2xl p-4 hidden w-64 h-64 overflow-y-auto z-50"
+    >
+      <div class="grid grid-cols-6 gap-2">
+        <!-- Common emojis -->
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('😀')"
+          >😀</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('😂')"
+          >😂</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('🥰')"
+          >🥰</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('😎')"
+          >😎</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('😡')"
+          >😡</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('😭')"
+          >😭</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('👍')"
+          >👍</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('❤️')"
+          >❤️</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('🔥')"
+          >🔥</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('🎉')"
+          >🎉</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('😊')"
+          >😊</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('🤔')"
+          >🤔</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('😴')"
+          >😴</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('🥺')"
+          >🥺</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('🙏')"
+          >🙏</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('👏')"
+          >👏</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('🎂')"
+          >🎂</span
+        >
+        <span
+          class="text-2xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg p-1 text-center"
+          onclick="insertEmoji('💯')"
+          >💯</span
+        >
+      </div>
+    </div>
+
+    <!-- Reaction Picker -->
+    <div
+      id="reactionPicker"
+      class="fixed z-50 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 hidden p-2"
+    >
+      <div class="flex gap-1">
+        <span
+          class="text-2xl cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          onclick="addReaction('like')"
+          >👍</span
+        >
+        <span
+          class="text-2xl cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          onclick="addReaction('love')"
+          >❤️</span
+        >
+        <span
+          class="text-2xl cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          onclick="addReaction('haha')"
+          >😂</span
+        >
+        <span
+          class="text-2xl cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          onclick="addReaction('wow')"
+          >😮</span
+        >
+        <span
+          class="text-2xl cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          onclick="addReaction('sad')"
+          >😢</span
+        >
+        <span
+          class="text-2xl cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+          onclick="addReaction('angry')"
+          >😠</span
+        >
+      </div>
+    </div>
     <!-- Profile Modal -->
     <div
       id="profileModal"
@@ -647,6 +840,14 @@
                 placeholder="Nhập tin nhắn..."
                 onkeypress="if (event.key === 'Enter') sendMsg();"
               />
+              <!-- thêm -->
+              <button
+                onclick="toggleEmojiPicker()"
+                class="p-3 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                id="emojiBtn"
+              >
+                <i data-lucide="smile" class="w-5 h-5"></i>
+              </button>
               <button
                 onclick="sendMsg()"
                 class="absolute right-2 top-1/2 transform -translate-y-1/2 p-3 bg-gradient-to-r from-primary-600 to-blue-500 text-white rounded-full hover:opacity-90 transition-opacity shadow-lg"
@@ -672,7 +873,8 @@
       let selectedMessageId = null;
       let selectedSidebarItemId = null;
       let selectedTheme = localStorage.getItem("theme") || "light";
-      let pinnedMessageId = null;
+      let selectedBackgroundFile = null;
+      let selectedMessageForReaction = null;
 
       // Áp dụng theme từ localStorage khi tải trang
       if (selectedTheme === "dark") {
@@ -694,7 +896,6 @@
       }
 
       function showToast(message, type = "info") {
-        // Tạo toast đơn giản
         alert(message);
       }
 
@@ -702,79 +903,90 @@
       function toggleDarkMode() {
         const isDark = document.documentElement.classList.toggle("dark");
         localStorage.setItem("theme", isDark ? "dark" : "light");
-
-        // Lưu theme vào backend nếu cần
-        if (currentUser) {
-          fetch("/chat/set-theme", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ theme: isDark ? "dark" : "light" }),
-          });
-        }
       }
 
       // --- HÀM HIỂN THỊ TIN NHẮN GHIM ---
       function displayPinnedMessage() {
-        if (!currentConv || !currentConv.messages) {
-          document
-            .getElementById("pinnedMessageContainer")
-            .classList.add("hidden");
+        // CHANGED: Thêm kiểm tra an toàn
+        const container = document.getElementById("pinnedMessageContainer");
+        const content = document.getElementById("pinnedMessageContent");
+        if (!container || !content || !currentConv) {
+          container?.classList.add("hidden");
           return;
         }
 
-        const pinnedMsg = currentConv.messages.find((m) => m.is_pinned);
-        const container = document.getElementById("pinnedMessageContainer");
-        const content = document.getElementById("pinnedMessageContent");
+        if (!currentConv.messages) {
+          container.classList.add("hidden");
+          return;
+        }
 
-        if (pinnedMsg) {
+        const pinnedMsgs = currentConv.messages.filter((m) => m.is_pinned);
+        
+        if (pinnedMsgs.length > 0) {
           container.classList.remove("hidden");
-          pinnedMessageId = pinnedMsg.id;
 
           let html = "";
-          if (pinnedMsg.file_type === "image") {
-            html = `<div class="flex items-center gap-3">
-                      <img src="/static/uploads/messages/${pinnedMsg.file_url}" class="rounded-lg h-16 w-16 object-cover">
-                      <span class="text-sm text-gray-500 dark:text-gray-400">Hình ảnh</span>
+          pinnedMsgs.forEach((msg, index) => {
+            let msgContent = "";
+            if (msg.file_type === "image") {
+              msgContent = `<div class="flex items-center gap-2 mb-2">
+                        <img src="/static/uploads/messages/${msg.file_url}" class="rounded h-10 w-10 object-cover">
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Hình ảnh</span>
                     </div>`;
-          } else if (pinnedMsg.file_type === "file") {
-            html = `<div class="flex items-center gap-3">
-                      <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                        <i data-lucide="file-text" class="w-5 h-5 text-gray-600 dark:text-gray-400"></i>
-                      </div>
-                      <span class="text-sm truncate max-w-[200px]">${pinnedMsg.file_name}</span>
+            } else if (msg.file_type === "file") {
+              msgContent = `<div class="flex items-center gap-2 mb-2">
+                        <div class="p-1.5 bg-gray-100 dark:bg-gray-800 rounded">
+                            <i data-lucide="file-text" class="w-4 h-4 text-gray-600 dark:text-gray-400"></i>
+                        </div>
+                        <span class="text-sm truncate">${msg.file_name}</span>
                     </div>`;
-          } else if (pinnedMsg.is_recalled) {
-            html = `<div class="text-sm italic text-gray-500 dark:text-gray-400">[Tin nhắn đã được thu hồi]</div>`;
-          } else {
-            // Tin nhắn ngắn hiển thị đầy đủ, tin nhắn dài cắt bớt
-            const displayText =
-              pinnedMsg.content.length > 100
-                ? pinnedMsg.content.substring(0, 100) + "..."
-                : pinnedMsg.content;
-            html = `<div class="text-sm">${displayText}</div>`;
-          }
+            } else if (msg.is_recalled) {
+              msgContent = `<div class="text-sm italic text-gray-500 dark:text-gray-400">[Tin nhắn đã được thu hồi]</div>`;
+            } else {
+              const displayText =
+                msg.content.length > 50
+                  ? msg.content.substring(0, 50) + "..."
+                  : msg.content;
+              msgContent = `<div class="text-sm mb-2">${displayText}</div>`;
+            }
+
+            html += `<div class="mb-2 pb-2 ${index < pinnedMsgs.length - 1 ? "border-b border-yellow-200 dark:border-yellow-800" : ""}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-semibold text-yellow-700 dark:text-yellow-300">${msg.sender_name}</span>
+                        <button onclick="unpinSpecificMessage(${msg.id})" class="p-1 hover:bg-yellow-200 dark:hover:bg-yellow-800/40 rounded">
+                            <i data-lucide="x" class="w-3 h-3 text-yellow-700 dark:text-yellow-300"></i>
+                        </button>
+                    </div>
+                    ${msgContent}
+                </div>`;
+          });
 
           content.innerHTML = html;
           lucide.createIcons();
         } else {
           container.classList.add("hidden");
-          pinnedMessageId = null;
         }
       }
 
-      // --- HÀM BỎ GHIM TIN NHẮN ---
-      function unpinMessage() {
-        if (!pinnedMessageId) return;
-
+      // --- HÀM BỎ GHIM TIN NHẮN CỤ THỂ ---
+      function unpinSpecificMessage(messageId) {
         socket.emit("pin_message", {
-          message_id: parseInt(pinnedMessageId),
+          message_id: parseInt(messageId),
           action: "unpin",
         });
+      }
 
-        // Ẩn vùng ghim ngay lập tức
-        document
-          .getElementById("pinnedMessageContainer")
-          .classList.add("hidden");
+      // CHANGED: Thêm hàm unpinMessage
+      async function unpinMessage() {
+        if (!currentConvId) return;
+        
+        try {
+          socket.emit("unpin_all_messages", {
+            conversation_id: currentConvId
+          });
+        } catch (e) {
+          console.error("Unpin error:", e);
+        }
       }
 
       // --- CONTEXT MENU CHO TIN NHẮN ---
@@ -809,7 +1021,7 @@
             pinText.textContent = msg.is_pinned ? "Bỏ ghim" : "Ghim";
           }
 
-          // Tính toán vị trí để menu không bị tràn ra ngoài màn hình
+          // Tính toán vị trí
           const menuWidth = 180;
           const menuHeight = 200;
           const viewportWidth = window.innerWidth;
@@ -818,12 +1030,10 @@
           let left = e.clientX;
           let top = e.clientY;
 
-          // Kiểm tra nếu menu bị tràn bên phải
           if (left + menuWidth > viewportWidth) {
             left = viewportWidth - menuWidth - 10;
           }
 
-          // Kiểm tra nếu menu bị tràn bên dưới
           if (top + menuHeight > viewportHeight) {
             top = viewportHeight - menuHeight - 10;
           }
@@ -856,7 +1066,6 @@
             selectedSidebarItemId = sidebarItem.dataset.convId;
             const menu = document.getElementById("sidebarContextMenu");
 
-            // Tính toán vị trí
             const menuWidth = 180;
             const viewportWidth = window.innerWidth;
 
@@ -881,6 +1090,10 @@
         div.className = `flex flex-col message-item message-transition ${isMe ? "items-end" : "items-start"}`;
         div.dataset.messageId = msg.id;
 
+        if (isMe) {
+          div.classList.add("mine");
+        }
+
         let html = '<div class="flex items-end gap-2 max-w-[80%]">';
 
         if (!isMe) {
@@ -895,36 +1108,55 @@
 
         let contentHtml = "";
         if (msg.is_recalled) {
-          contentHtml = `<div class="px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-2xl italic text-gray-500 dark:text-gray-400">
-                          [Tin nhắn đã được thu hồi]
-                        </div>`;
+          contentHtml = `<div class="px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-2xl italic text-gray-500 dark:text-gray-400 message-content">
+                            [Tin nhắn đã được thu hồi]
+                          </div>`;
         } else if (msg.file_type === "image") {
           contentHtml = `<img src="/static/uploads/messages/${msg.file_url}" 
-                          class="rounded-2xl max-w-[280px] cursor-zoom-in hover:opacity-90 transition-opacity shadow-lg"
-                          onclick="viewImage(this.src)">`;
+                              class="rounded-2xl max-w-[280px] cursor-zoom-in hover:opacity-90 transition-opacity shadow-lg"
+                              onclick="viewImage(this.src)">`;
         } else if (msg.file_type === "file") {
           contentHtml = `<a href="/static/uploads/messages/${msg.file_url}" download 
-                          class="flex items-center gap-3 px-4 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-2xl transition-colors group">
-                          <div class="p-2 bg-white dark:bg-gray-900 rounded-lg">
-                            <i data-lucide="file-text" class="w-5 h-5 text-gray-600 dark:text-gray-400"></i>
-                          </div>
-                          <div class="flex-1 min-w-0">
-                            <div class="text-sm font-medium text-gray-800 dark:text-white truncate">${msg.file_name}</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">Tải xuống</div>
-                          </div>
-                        </a>`;
+                              class="flex items-center gap-3 px-4 py-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-2xl transition-colors group message-content">
+                              <div class="p-2 bg-white dark:bg-gray-900 rounded-lg">
+                                <i data-lucide="file-text" class="w-5 h-5 text-gray-600 dark:text-gray-400"></i>
+                              </div>
+                              <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-gray-800 dark:text-white truncate">${msg.file_name}</div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">Tải xuống</div>
+                              </div>
+                            </a>`;
         } else {
           const bgClass = isMe
             ? "bg-gradient-to-r from-primary-500 to-blue-400 text-white"
-            : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white";
+            : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-white message-content";
 
           contentHtml = `<div class="px-4 py-3 ${bgClass} rounded-2xl shadow-sm ${isMe ? "rounded-tr-none" : "rounded-tl-none"}">
-                          <div class="break-words max-w-[400px] message-text">${msg.content}</div>
-                          ${msg.is_edited ? '<span class="text-xs opacity-75 ml-2">(đã chỉnh sửa)</span>' : ""}
-                        </div>`;
+                            <div class="break-words max-w-[400px] message-text">${msg.content}</div>
+                            ${msg.is_edited ? '<span class="text-xs opacity-75 ml-2">(đã chỉnh sửa)</span>' : ""}
+                          </div>`;
         }
 
         html += contentHtml;
+
+        // THÊM PHẦN REACTION NẾU CÓ
+        if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+          html += `<div class="message-reactions flex gap-1 mt-1 ${isMe ? "justify-end" : "justify-start"}">`;
+          for (const [type, count] of Object.entries(msg.reactions)) {
+            const emojiMap = {
+              like: "👍",
+              love: "❤️",
+              haha: "😂",
+              wow: "😮",
+              sad: "😢",
+              angry: "😠",
+            };
+            html += `<div class="reaction-badge text-xs px-2 py-1 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600" onclick="addReactionToMessage(${msg.id}, '${type}')">
+                            ${emojiMap[type] || type} ${count}
+                         </div>`;
+          }
+          html += "</div>";
+        }
 
         html += `<div class="flex items-center gap-2 mt-1 text-xs ${isMe ? "justify-end" : "justify-start"}">
                   <span class="text-gray-500 dark:text-gray-400">
@@ -932,6 +1164,9 @@
                   </span>
                   ${isMe ? '<i data-lucide="check" class="w-4 h-4 text-blue-500"></i>' : ""}
                   ${msg.is_pinned ? '<i data-lucide="pin" class="w-3 h-3 text-yellow-500"></i>' : ""}
+                  <button class="reaction-btn opacity-0 hover:opacity-100 transition-opacity p-1 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" onclick="showReactionPicker(${msg.id}, event)">
+                    <i data-lucide="smile-plus" class="w-4 h-4"></i>
+                  </button>
                 </div>`;
 
         html += "</div></div>";
@@ -992,7 +1227,7 @@
         const msg = currentConv.messages?.find(
           (m) => m.id == selectedMessageId,
         );
-        if (!msg || msg.file_type) return; // Không chỉnh sửa tin nhắn file/hình ảnh
+        if (!msg || msg.file_type) return;
 
         const newContent = prompt("Chỉnh sửa tin nhắn:", msg.content || "");
         if (
@@ -1068,20 +1303,59 @@
           // Cập nhật tất cả tin nhắn trong cuộc trò chuyện
           if (currentConv.messages) {
             currentConv.messages.forEach((msg) => {
-              if (msg.id === data.message_id) {
-                msg.is_pinned = data.is_pinned;
-              } else if (msg.is_pinned) {
-                msg.is_pinned = false; // Bỏ ghim tin nhắn cũ
-              }
+              // Kiểm tra xem tin nhắn này có trong pinned_messages không
+              const isPinned = data.pinned_messages?.some(
+                (pm) => pm.id === msg.id,
+              );
+              msg.is_pinned = isPinned || false;
             });
 
             // Render lại tất cả tin nhắn
             const box = document.getElementById("msgList");
             box.innerHTML = "";
+            currentConv.messages.sort(
+              (a, b) => new Date(a.created_at) - new Date(b.created_at),
+            );
             currentConv.messages.forEach(renderMsg);
 
             // Cập nhật vùng ghim
             displayPinnedMessage();
+          }
+        }
+      });
+
+      // CHANGED: Thêm socket listener cho unpin all
+      socket.on("all_messages_unpinned", (data) => {
+        if (currentConvId == data.conversation_id) {
+          // Cập nhật tất cả tin nhắn
+          if (currentConv.messages) {
+            currentConv.messages.forEach(msg => {
+              msg.is_pinned = false;
+            });
+            
+            // Render lại tất cả tin nhắn
+            const box = document.getElementById("msgList");
+            box.innerHTML = "";
+            currentConv.messages.sort(
+              (a, b) => new Date(a.created_at) - new Date(b.created_at),
+            );
+            currentConv.messages.forEach(renderMsg);
+            
+            // Ẩn pinned message container
+            displayPinnedMessage();
+          }
+        }
+      });
+
+      socket.on("message_reacted", (data) => {
+        if (currentConvId == data.conversation_id) {
+          // Cập nhật reaction cho tin nhắn
+          const msgIndex = currentConv.messages?.findIndex(
+            (m) => m.id == data.message_id,
+          );
+          if (msgIndex !== -1 && currentConv.messages) {
+            currentConv.messages[msgIndex].reactions = data.reaction_summary;
+            updateMessageReactions(data.message_id, data.reaction_summary);
           }
         }
       });
@@ -1098,59 +1372,68 @@
 
       // --- CẬP NHẬT MENU 3 CHẤM ---
       function toggleMoreOptions(event) {
-        event.stopPropagation();
+        // CHANGED: Thêm kiểm tra event và currentConv
+        event?.stopPropagation();
         const menu = document.getElementById("moreOptionsDropdown");
-        if (!currentConv) return;
+        if (!menu || !currentConv) return;
 
         let html = "";
         if (currentConv.is_group) {
           html = `
-            <div class="px-1 py-1">
-              <a href="#" onclick="viewGroupMembers()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
-                <i data-lucide="users" class="w-5 h-5"></i>
-                <span>Xem thành viên</span>
-              </a>
-              <a href="#" onclick="openNicknameModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
-                <i data-lucide="tag" class="w-5 h-5"></i>
-                <span>Đặt biệt danh</span>
-              </a>
-              <a href="#" onclick="openThemeModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
-                <i data-lucide="palette" class="w-5 h-5"></i>
-                <span>Đổi theme chat</span>
-              </a>
-              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-              <a href="#" onclick="viewProfile()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
-                <i data-lucide="user" class="w-5 h-5"></i>
-                <span>Xem hồ sơ</span>
-              </a>
-              <a href="#" onclick="leaveGroup()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors">
-                <i data-lucide="log-out" class="w-5 h-5"></i>
-                <span>Rời nhóm</span>
-              </a>
-            </div>
-          `;
+                <div class="px-1 py-1">
+                    <a href="#" onclick="viewGroupMembers()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                        <span>Xem thành viên</span>
+                    </a>
+                    <a href="#" onclick="openNicknameModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="tag" class="w-5 h-5"></i>
+                        <span>Đặt biệt danh</span>
+                    </a>
+                    <a href="#" onclick="openThemeModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="palette" class="w-5 h-5"></i>
+                        <span>Đổi theme chat</span>
+                    </a>
+                    <a href="#" onclick="openBackgroundModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="image" class="w-5 h-5"></i>
+                        <span>Đổi ảnh nền chat</span>
+                    </a>
+                    <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    <a href="#" onclick="viewProfile()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                        <span>Xem hồ sơ</span>
+                    </a>
+                    <a href="#" onclick="leaveGroup()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                        <span>Rời nhóm</span>
+                    </a>
+                </div>
+            `;
         } else {
           html = `
-            <div class="px-1 py-1">
-              <a href="#" onclick="viewProfile()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
-                <i data-lucide="user" class="w-5 h-5"></i>
-                <span>Xem hồ sơ</span>
-              </a>
-              <a href="#" onclick="openNicknameModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
-                <i data-lucide="tag" class="w-5 h-5"></i>
-                <span>Đặt biệt danh</span>
-              </a>
-              <a href="#" onclick="openThemeModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
-                <i data-lucide="palette" class="w-5 h-5"></i>
-                <span>Đổi theme chat</span>
-              </a>
-              <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-              <a href="#" onclick="deleteConversation()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors">
-                <i data-lucide="trash-2" class="w-5 h-5"></i>
-                <span>Xóa hội thoại</span>
-              </a>
-            </div>
-          `;
+                <div class="px-1 py-1">
+                    <a href="#" onclick="viewProfile()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="user" class="w-5 h-5"></i>
+                        <span>Xem hồ sơ</span>
+                    </a>
+                    <a href="#" onclick="openNicknameModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="tag" class="w-5 h-5"></i>
+                        <span>Đặt biệt danh</span>
+                    </a>
+                    <a href="#" onclick="openThemeModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="palette" class="w-5 h-5"></i>
+                        <span>Đổi theme chat</span>
+                    </a>
+                    <a href="#" onclick="openBackgroundModal()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-700 dark:text-gray-300 transition-colors">
+                        <i data-lucide="image" class="w-5 h-5"></i>
+                        <span>Đổi ảnh nền chat</span>
+                    </a>
+                    <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    <a href="#" onclick="deleteConversation()" class="flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        <span>Xóa hội thoại</span>
+                    </a>
+                </div>
+            `;
         }
 
         menu.innerHTML = html;
@@ -1229,6 +1512,13 @@
 
           const data = await res.json();
           if (data.success) {
+            // Cập nhật biệt danh trong currentConv
+            if (!currentConv.settings) currentConv.settings = {};
+            currentConv.settings.nickname = nickname;
+
+            // Cập nhật hiển thị
+            updateHeaderDisplay();
+
             alert("Đã lưu biệt danh");
             toggleModal("nicknameModal");
           }
@@ -1243,8 +1533,11 @@
         document.getElementById("moreOptionsDropdown").classList.add("hidden");
       }
 
-      function selectTheme(theme) {
-        selectedTheme = theme;
+      let selectedThemeOption = "default";
+
+      // CHANGED: Sửa hàm selectTheme để nhận tham số event
+      function selectTheme(theme, event) {
+        selectedThemeOption = theme;
         document.querySelectorAll(".theme-option").forEach((el) => {
           el.classList.remove(
             "border-blue-300",
@@ -1278,35 +1571,12 @@
             clickedEl.classList.add("border-gray-300", "dark:border-gray-600");
           } else if (theme === "dark") {
             clickedEl.classList.add("border-gray-600", "dark:border-gray-700");
+          } else if (theme === "default") {
+            clickedEl.classList.add("border-blue-300", "dark:border-blue-600");
           }
         }
       }
-      // Thêm hàm applyTheme
-      function applyTheme(theme) {
-        const msgList = document.getElementById("msgList");
-        const chatInterface = document.getElementById("chat-interface");
 
-        // Xóa tất cả class theme cũ
-        msgList.classList.remove(
-          "theme-blue",
-          "theme-green",
-          "theme-purple",
-          "theme-light",
-          "theme-dark",
-          "theme-custom",
-        );
-
-        // Áp dụng theme mới
-        if (theme === "default") {
-          msgList.classList.add("theme-default");
-        } else {
-          msgList.classList.add(`theme-${theme}`);
-        }
-
-        // Lưu vào localStorage
-        localStorage.setItem(`chat-theme-${currentConvId}`, theme);
-      }
-      // Sửa hàm saveTheme
       async function saveTheme() {
         if (!currentConvId) return;
         try {
@@ -1315,20 +1585,167 @@
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ theme: selectedTheme }),
+              body: JSON.stringify({ theme: selectedThemeOption }),
             },
           );
 
           const data = await res.json();
           if (data.success) {
             // Áp dụng theme ngay lập tức
-            applyTheme(selectedTheme);
+            applyTheme(selectedThemeOption);
             alert("Đã áp dụng theme");
             toggleModal("themeModal");
           }
         } catch (e) {
           console.error("Theme error:", e);
         }
+      }
+
+      // --- HÀM ÁP DỤNG THEME ---
+      function applyTheme(theme) {
+        const msgList = document.getElementById("msgList");
+
+        // Xóa tất cả class theme cũ
+        msgList.classList.remove(
+          "theme-blue",
+          "theme-green",
+          "theme-purple",
+          "theme-light",
+          "theme-dark",
+          "theme-default",
+        );
+
+        // Áp dụng theme mới
+        msgList.classList.add(`theme-${theme}`);
+
+        // Lưu vào localStorage
+        localStorage.setItem(`chat-theme-${currentConvId}`, theme);
+
+        // Thêm CSS động cho theme
+        if (!document.getElementById("theme-styles")) {
+          const style = document.createElement("style");
+          style.id = "theme-styles";
+          style.textContent = `
+                .theme-blue { background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%) !important; }
+                .theme-green { background: linear-gradient(135deg, #dcfce7 0%, #f0fdf4 100%) !important; }
+                .theme-purple { background: linear-gradient(135deg, #f3e8ff 0%, #faf5ff 100%) !important; }
+                .theme-dark { background: linear-gradient(135deg, #1f2937 0%, #111827 100%) !important; }
+                .theme-light { background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important; }
+                .theme-default { background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important; }
+            `;
+          document.head.appendChild(style);
+        }
+      }
+
+      // --- HÀM ĐỔI ẢNH NỀN ---
+      function openBackgroundModal() {
+        toggleModal("backgroundModal");
+        document.getElementById("moreOptionsDropdown").classList.add("hidden");
+      }
+
+      document.getElementById("backgroundInput").onchange = function (e) {
+        if (e.target.files[0]) {
+          selectedBackgroundFile = e.target.files[0];
+          const preview = document.getElementById("previewBackground");
+          preview.src = URL.createObjectURL(selectedBackgroundFile);
+          document
+            .getElementById("backgroundPreview")
+            .classList.remove("hidden");
+        }
+      };
+
+      async function saveBackground() {
+        if (!selectedBackgroundFile || !currentConvId) return;
+
+        const formData = new FormData();
+        formData.append("background", selectedBackgroundFile);
+
+        try {
+          const res = await fetch(
+            `/chat/conversation/${currentConvId}/set-background`,
+            {
+              method: "POST",
+              body: formData,
+            },
+          );
+
+          const data = await res.json();
+          if (data.success) {
+            // Áp dụng ảnh nền ngay lập tức
+            applyBackground(data.filename);
+            alert("Đã áp dụng ảnh nền");
+            toggleModal("backgroundModal");
+          }
+        } catch (e) {
+          console.error("Background error:", e);
+        }
+      }
+
+      // CHANGED: Sửa hàm applyBackground để tránh xung đột CSS
+      function applyBackground(filename) {
+        const msgList = document.getElementById("msgList");
+        if (!msgList) return;
+        
+        // Xóa tất cả class theme để tránh xung đột
+        msgList.classList.remove(
+          "theme-blue", "theme-green", "theme-purple", 
+          "theme-light", "theme-dark", "theme-default"
+        );
+        
+        if (filename) {
+          // Sử dụng style inline
+          msgList.style.backgroundImage = `url('/static/uploads/backgrounds/${filename}')`;
+          msgList.style.backgroundSize = "cover";
+          msgList.style.backgroundAttachment = "fixed";
+          msgList.style.backgroundPosition = "center";
+          msgList.style.backgroundRepeat = "no-repeat";
+          
+          // Thêm overlay cho độ tương phản
+          msgList.style.position = "relative";
+          
+          let overlay = document.getElementById("background-overlay");
+          if (!overlay) {
+            overlay = document.createElement("div");
+            overlay.id = "background-overlay";
+            overlay.style.position = "absolute";
+            overlay.style.top = "0";
+            overlay.style.left = "0";
+            overlay.style.right = "0";
+            overlay.style.bottom = "0";
+            overlay.style.backgroundColor = "rgba(255, 255, 255, 0.7)";
+            overlay.style.zIndex = "-1";
+            msgList.prepend(overlay);
+          }
+        } else {
+          // Reset về mặc định
+          msgList.style.backgroundImage = "";
+          msgList.style.backgroundColor = "";
+          
+          const overlay = document.getElementById("background-overlay");
+          if (overlay) overlay.remove();
+        }
+        
+        // Lưu vào localStorage
+        if (filename) {
+          localStorage.setItem(`chat-bg-${currentConvId}`, filename);
+        } else {
+          localStorage.removeItem(`chat-bg-${currentConvId}`);
+        }
+      }
+
+      // --- HÀM UPDATE HEADER DISPLAY ---
+      function updateHeaderDisplay() {
+        const headerName = document.getElementById("headerName");
+        if (!currentConv || !headerName) return;
+
+        let displayName = currentConv.name;
+
+        // Nếu có biệt danh trong settings
+        if (currentConv.settings && currentConv.settings.nickname) {
+          displayName = `${currentConv.name} (${currentConv.settings.nickname})`;
+        }
+
+        headerName.textContent = displayName;
       }
 
       // --- HÀM CHO SIDEBAR CONTEXT MENU ---
@@ -1386,18 +1803,18 @@
               }
 
               div.innerHTML = `
-                <div class="relative">
-                  <img src="${avatar}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 dark:border-gray-700">
-                  ${c.is_group ? '<div class="absolute -bottom-1 -right-1 bg-primary-500 text-white p-1 rounded-full"><i data-lucide="users" class="w-3 h-3"></i></div>' : ""}
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex justify-between items-start mb-1">
-                    <h4 class="font-bold text-gray-800 dark:text-white truncate">${c.name}</h4>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">${c.last_message ? new Date(c.last_message.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
-                  </div>
-                  <p class="text-sm text-gray-600 dark:text-gray-400 truncate">${preview}</p>
-                </div>
-              `;
+                        <div class="relative">
+                            <img src="${avatar}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 dark:border-gray-700">
+                            ${c.is_group ? '<div class="absolute -bottom-1 -right-1 bg-primary-500 text-white p-1 rounded-full"><i data-lucide="users" class="w-3 h-3"></i></div>' : ""}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-start mb-1">
+                                <h4 class="font-bold text-gray-800 dark:text-white truncate">${c.name}</h4>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${c.last_message ? new Date(c.last_message.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 truncate">${preview}</p>
+                        </div>
+                    `;
               list.appendChild(div);
             });
             lucide.createIcons();
@@ -1415,31 +1832,85 @@
 
           if (data.success) {
             currentConv = data.conversation;
+
+            // Ẩn màn hình chào, hiện giao diện chat
             document.getElementById("welcome-screen").classList.add("hidden");
             document
               .getElementById("chat-interface")
               .classList.remove("hidden");
             document.getElementById("chat-interface").classList.add("flex");
-            document.getElementById("headerName").innerText = currentConv.name;
 
+            // CẬP NHẬT HIỂN THỊ TÊN VỚI BIỆT DANH
+            updateHeaderDisplay();
+
+            // CẬP NHẬT AVATAR
             let avatar = getAvatar(currentConv.avatar);
             if (currentConv.is_group) {
               avatar = "https://cdn-icons-png.flaticon.com/512/681/681494.png";
             }
             document.getElementById("headerAvatar").src = avatar;
 
+            // XÓA TIN NHẮN CŨ VÀ RENDER LẠI
             const box = document.getElementById("msgList");
             box.innerHTML = "";
+
+            // ÁP DỤNG THEME CHO KHUNG CHAT
+            if (currentConv.settings && currentConv.settings.theme) {
+              applyTheme(currentConv.settings.theme);
+              selectedThemeOption = currentConv.settings.theme;
+            } else {
+              // Kiểm tra localStorage nếu không có trong settings
+              const savedTheme = localStorage.getItem(
+                `chat-theme-${currentConvId}`,
+              );
+              if (savedTheme) {
+                applyTheme(savedTheme);
+                selectedThemeOption = savedTheme;
+              } else {
+                // Theme mặc định
+                applyTheme("default");
+                selectedThemeOption = "default";
+              }
+            }
+
+            // ÁP DỤNG ẢNH NỀN
+            if (currentConv.settings && currentConv.settings.background_image) {
+              applyBackground(currentConv.settings.background_image);
+            } else {
+              // Kiểm tra localStorage
+              const savedBg = localStorage.getItem(`chat-bg-${currentConvId}`);
+              if (savedBg) {
+                applyBackground(savedBg);
+              } else {
+                // Xóa ảnh nền nếu có
+                document.getElementById("msgList").style.backgroundImage = "";
+              }
+            }
+
+            // RENDER TIN NHẮN
             if (currentConv.messages) {
+              // Đảm bảo messages được sắp xếp theo thời gian (mới nhất cuối cùng)
+              currentConv.messages.sort(
+                (a, b) => new Date(a.created_at) - new Date(b.created_at),
+              );
               currentConv.messages.forEach(renderMsg);
             }
+
+            // HIỂN THỊ TIN NHẮN ĐƯỢC GHIM
             displayPinnedMessage();
 
+            // JOIN SOCKET ROOM
             socket.emit("join_conversation", { conversation_id: convId });
+
+            // CẬP NHẬT URL
             window.history.pushState({}, "", `/chat?id=${convId}`);
+
+            // ẨN DROPDOWN NẾU ĐANG MỞ
             document
               .getElementById("moreOptionsDropdown")
               .classList.add("hidden");
+
+            // RELOAD SIDEBAR ĐỂ CẬP NHẬT LAST MESSAGE
             loadSidebar();
           }
         } catch (e) {
@@ -1495,18 +1966,18 @@
             data.members.forEach((m) => {
               let avatar = getAvatar(m.avatar_url);
               list.innerHTML += `
-                <div class="flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
-                  <div class="flex items-center gap-3">
-                    <img src="${avatar}" class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700">
-                    <div>
-                      <div class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        ${m.name} 
-                        ${m.is_admin ? '<span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-xs rounded-lg">Quản trị viên</span>' : ""}
-                      </div>
-                      <div class="text-sm text-gray-500 dark:text-gray-400">${m.phone_number}</div>
-                    </div>
-                  </div>
-                </div>`;
+                        <div class="flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+                            <div class="flex items-center gap-3">
+                                <img src="${avatar}" class="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700">
+                                <div>
+                                    <div class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                                        ${m.name} 
+                                        ${m.is_admin ? '<span class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 text-xs rounded-lg">Quản trị viên</span>' : ""}
+                                    </div>
+                                    <div class="text-sm text-gray-500 dark:text-gray-400">${m.phone_number}</div>
+                                </div>
+                            </div>
+                        </div>`;
             });
             lucide.createIcons();
             toggleModal("membersModal");
@@ -1534,6 +2005,110 @@
           method: "DELETE",
         });
         location.reload();
+      }
+
+      // --- REACTION FUNCTIONS ---
+      function showReactionPicker(messageId, event) {
+        event.stopPropagation();
+        selectedMessageForReaction = messageId;
+        const picker = document.getElementById("reactionPicker");
+
+        // Đặt vị trí
+        picker.style.left = `${event.clientX - 100}px`;
+        picker.style.top = `${event.clientY - 60}px`;
+
+        picker.classList.remove("hidden");
+
+        // Tự động ẩn sau 3 giây
+        setTimeout(() => {
+          picker.classList.add("hidden");
+        }, 3000);
+      }
+
+      function addReaction(reactionType) {
+        if (!selectedMessageForReaction) return;
+
+        socket.emit("reaction_message", {
+          message_id: parseInt(selectedMessageForReaction),
+          reaction_type: reactionType,
+        });
+
+        document.getElementById("reactionPicker").classList.add("hidden");
+      }
+
+      function addReactionToMessage(messageId, reactionType) {
+        socket.emit("reaction_message", {
+          message_id: parseInt(messageId),
+          reaction_type: reactionType,
+        });
+      }
+
+      function updateMessageReactions(messageId, reactionSummary) {
+        const msgElement = document.querySelector(
+          `[data-message-id="${messageId}"]`,
+        );
+        if (!msgElement) return;
+
+        let reactionsContainer = msgElement.querySelector(".message-reactions");
+        if (!reactionsContainer) {
+          reactionsContainer = document.createElement("div");
+          reactionsContainer.className = "message-reactions";
+          msgElement.appendChild(reactionsContainer);
+        }
+
+        // Cập nhật reactions
+        reactionsContainer.innerHTML = "";
+        for (const [type, count] of Object.entries(reactionSummary || {})) {
+          if (count > 0) {
+            const emojiMap = {
+              like: "👍",
+              love: "❤️",
+              haha: "😂",
+              wow: "😮",
+              sad: "😢",
+              angry: "😠",
+            };
+
+            const badge = document.createElement("div");
+            badge.className =
+              "reaction-badge text-xs px-2 py-1 rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600";
+            badge.innerHTML = `${emojiMap[type] || type} ${count}`;
+            badge.onclick = () => addReactionToMessage(messageId, type);
+            reactionsContainer.appendChild(badge);
+          }
+        }
+      }
+
+      // --- EMOJI PICKER FUNCTIONS ---
+      function toggleEmojiPicker() {
+        const picker = document.getElementById("emojiPicker");
+        picker.classList.toggle("hidden");
+
+        if (!picker.classList.contains("hidden")) {
+          setTimeout(() => {
+            document.addEventListener("click", closeEmojiPickerOnClick);
+          }, 100);
+        }
+      }
+
+      function closeEmojiPickerOnClick(e) {
+        const picker = document.getElementById("emojiPicker");
+        const emojiBtn = document.getElementById("emojiBtn");
+        if (
+          !picker.contains(e.target) &&
+          (!emojiBtn || !emojiBtn.contains(e.target))
+        ) {
+          picker.classList.add("hidden");
+          document.removeEventListener("click", closeEmojiPickerOnClick);
+        }
+      }
+
+      function insertEmoji(emoji) {
+        const input = document.getElementById("inputMsg");
+        input.value += emoji;
+        input.focus();
+
+        document.getElementById("emojiPicker").classList.add("hidden");
       }
 
       // --- HELPERS ---
@@ -1584,11 +2159,11 @@
         if (data.friends) {
           data.friends.forEach((f) => {
             list.innerHTML += `
-              <label class="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
-                <input type="checkbox" value="${f.id}" class="group-check w-5 h-5 text-primary-600 rounded border-gray-300 dark:border-gray-600 focus:ring-primary-500">
-                <img src="${getAvatar(f.avatar_url)}" class="w-10 h-10 rounded-full">
-                <span class="font-medium text-gray-800 dark:text-white">${f.name}</span>
-              </label>`;
+                    <label class="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors">
+                        <input type="checkbox" value="${f.id}" class="group-check w-5 h-5 text-primary-600 rounded border-gray-300 dark:border-gray-600 focus:ring-primary-500">
+                        <img src="${getAvatar(f.avatar_url)}" class="w-10 h-10 rounded-full">
+                        <span class="font-medium text-gray-800 dark:text-white">${f.name}</span>
+                    </label>`;
           });
         }
       }
@@ -1635,6 +2210,19 @@
             socket.emit("join_conversation", {
               conversation_id: `user_${currentUser.id}`,
             });
+          });
+
+          // CHANGED: Thêm xử lý lỗi socket
+          socket.on("connect_error", (error) => {
+            console.error("Socket connection error:", error);
+            showToast("Kết nối thất bại. Đang thử kết nối lại...", "error");
+          });
+
+          socket.on("disconnect", (reason) => {
+            console.log("Socket disconnected:", reason);
+            if (reason === "io server disconnect") {
+              socket.connect();
+            }
           });
 
           document.addEventListener("click", (e) => {

@@ -1,86 +1,8 @@
-
-# from extensions import db
-# from datetime import datetime
-
-# # Bảng phụ cho quan hệ nhiều-nhiều
-# participants = db.Table('participants',
-#     db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
-#     db.Column('conversation_id', db.Integer, db.ForeignKey('conversations.id'), primary_key=True)
-# )
-
-# class Conversation(db.Model):
-#     __tablename__ = 'conversations'
-    
-#     id = db.Column(db.Integer, primary_key=True)
-#     title = db.Column(db.String(100))
-#     is_group = db.Column(db.Boolean, default=False)
-#     admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    
-#     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-#     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-#     # Quan hệ với User (Dùng string 'User' để tránh lỗi Circular Import)
-#     users = db.relationship('User', secondary=participants, lazy='subquery',
-#                            backref=db.backref('conversations', lazy=True))
-    
-#     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
-
-#     def to_dict(self, current_user_id):
-#         name = self.title
-#         avatar = 'default_group.png' # Ảnh mặc định nhóm
-        
-#         # Nếu là chat 1-1, lấy tên/avatar người kia
-#         if not self.is_group:
-#             other = next((u for u in self.users if u.id != current_user_id), None)
-#             if other:
-#                 name = other.name
-#                 avatar = other.avatar_url
-        
-#         return {
-#             'id': self.id,
-#             'name': name,
-#             'avatar': avatar,
-#             'is_group': self.is_group,
-#             'updated_at': self.updated_at.isoformat()
-#         }
-
-# class Message(db.Model):
-#     __tablename__ = 'messages'
-    
-#     id = db.Column(db.Integer, primary_key=True)
-#     conversation_id = db.Column(db.Integer, db.ForeignKey('conversations.id'), nullable=False)
-#     sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
-#     content = db.Column(db.Text)
-#     file_url = db.Column(db.String(500))
-#     file_name = db.Column(db.String(255))
-#     file_type = db.Column(db.String(50))
-    
-#     status = db.Column(db.String(20), default='sent')
-#     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-#     # Quan hệ với User
-#     sender = db.relationship('User', foreign_keys=[sender_id])
-
-#     def to_dict(self):
-#         return {
-#             'id': self.id,
-#             'conversation_id': self.conversation_id,
-#             'sender_id': self.sender_id,
-#             'sender_name': self.sender.name if self.sender else "Unknown",
-#             'sender_avatar': self.sender.avatar_url if self.sender else "",
-#             'content': self.content,
-#             'file_url': self.file_url,
-#             'file_name': self.file_name,
-#             'file_type': self.file_type,
-#             'created_at': self.created_at.isoformat()
-#         }
-# # # ok la
 from extensions import db
 from datetime import datetime
 
-# Bảng phụ cho quan hệ nhiều-nhiều
-participants = db.Table('participants',
+# Bảng trung gian cho quan hệ nhiều-nhiều giữa User và Conversation
+conversation_users = db.Table('conversation_users',
     db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
     db.Column('conversation_id', db.Integer, db.ForeignKey('conversations.id'), primary_key=True)
 )
@@ -89,38 +11,40 @@ class Conversation(db.Model):
     __tablename__ = 'conversations'
     
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(100))
+    title = db.Column(db.String(255))
     is_group = db.Column(db.Boolean, default=False)
-    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    
+    admin_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    avatar_url = db.Column(db.String(500))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Quan hệ với User (Dùng string 'User' để tránh lỗi Circular Import)
-    users = db.relationship('User', secondary=participants, lazy='subquery',
-                           backref=db.backref('conversations', lazy=True))
-    
+    # Quan hệ
+    users = db.relationship('User', secondary=conversation_users, backref=db.backref('conversations', lazy=True))
     messages = db.relationship('Message', backref='conversation', lazy=True, cascade='all, delete-orphan')
-
-    def to_dict(self, current_user_id):
-        name = self.title
-        avatar = 'default_group.png' # Ảnh mặc định nhóm
-        
-        # Nếu là chat 1-1, lấy tên/avatar người kia
-        if not self.is_group:
-            other = next((u for u in self.users if u.id != current_user_id), None)
-            if other:
-                name = other.name
-                avatar = other.avatar_url
-        
-        return {
+    
+    def to_dict(self, current_user_id=None):
+        data = {
             'id': self.id,
-            'name': name,
-            'avatar': avatar,
+            'title': self.title,
             'is_group': self.is_group,
-            'updated_at': self.updated_at.isoformat()
+            'admin_id': self.admin_id,
+            'avatar_url': self.avatar_url,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
-
+        
+        # Nếu là nhóm, tên là title, nếu là chat 1-1 thì tên là người còn lại
+        if not self.is_group and current_user_id:
+            for user in self.users:
+                if user.id != current_user_id:
+                    data['name'] = user.name
+                    data['avatar'] = user.avatar_url
+                    break
+        else:
+            data['name'] = self.title
+            data['avatar'] = self.avatar_url
+            
+        return data
 
 class Message(db.Model):
     __tablename__ = 'messages'
@@ -128,44 +52,39 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     conversation_id = db.Column(db.Integer, db.ForeignKey('conversations.id'), nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
     content = db.Column(db.Text)
     file_url = db.Column(db.String(500))
-    file_name = db.Column(db.String(255))
+    file_name = db.Column(db.String(500))
     file_type = db.Column(db.String(50))
-    
-    status = db.Column(db.String(20), default='sent')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    # --- CÁC TRƯỜNG MỚI ---
-    is_edited = db.Column(db.Boolean, default=False)
-    edited_at = db.Column(db.DateTime, nullable=True)
     is_recalled = db.Column(db.Boolean, default=False)
+    is_edited = db.Column(db.Boolean, default=False)
     is_pinned = db.Column(db.Boolean, default=False)
-    pinned_at = db.Column(db.DateTime, nullable=True)
+    pinned_at = db.Column(db.DateTime)
+    edited_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    sender = db.relationship('User', foreign_keys=[sender_id])
-
+    # Quan hệ
+    sender = db.relationship('User', backref=db.backref('messages', lazy=True))
+    
     def to_dict(self):
         return {
             'id': self.id,
             'conversation_id': self.conversation_id,
             'sender_id': self.sender_id,
-            'sender_name': self.sender.name if self.sender else "Unknown",
-            'sender_avatar': self.sender.avatar_url if self.sender else "",
+            'sender_name': self.sender.name if self.sender else None,
+            'sender_avatar': self.sender.avatar_url if self.sender else None,
             'content': self.content,
             'file_url': self.file_url,
             'file_name': self.file_name,
             'file_type': self.file_type,
-            'created_at': self.created_at.isoformat(),
-            'is_edited': self.is_edited,
-            'edited_at': self.edited_at.isoformat() if self.edited_at else None,
             'is_recalled': self.is_recalled,
+            'is_edited': self.is_edited,
             'is_pinned': self.is_pinned,
             'pinned_at': self.pinned_at.isoformat() if self.pinned_at else None,
-            'status': self.status
+            'edited_at': self.edited_at.isoformat() if self.edited_at else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
         }
-
 
 class ConversationSettings(db.Model):
     __tablename__ = 'conversation_settings'
@@ -173,16 +92,26 @@ class ConversationSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     conversation_id = db.Column(db.Integer, db.ForeignKey('conversations.id'), nullable=False)
-    nickname = db.Column(db.String(100), nullable=True)  # Biệt danh đặt cho đối phương
-    theme = db.Column(db.String(50), default='default')  # Theme cho cuộc trò chuyện này
+    nickname = db.Column(db.String(100))
+    theme = db.Column(db.String(50), default='default')
+    background_image = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Đảm bảo mỗi user chỉ có 1 setting cho 1 conversation
-    __table_args__ = (db.UniqueConstraint('user_id', 'conversation_id', name='unique_conversation_settings'),)
+    # Quan hệ
+    user = db.relationship('User', backref=db.backref('conversation_settings', lazy=True))
+    conversation = db.relationship('Conversation', backref=db.backref('settings', lazy=True))
     
-    user = db.relationship('User', backref='conversation_settings')
-    conversation = db.relationship('Conversation', backref='user_settings')
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'conversation_id': self.conversation_id,
+            'nickname': self.nickname,
+            'theme': self.theme,
+            'background_image': self.background_image,
+        }
 
-    # Thêm model Reaction
 class Reaction(db.Model):
     __tablename__ = 'reactions'
     
@@ -193,7 +122,15 @@ class Reaction(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Quan hệ
-    message = db.relationship('Message', backref='reactions')
-    user = db.relationship('User', backref='user_reactions')
+    message = db.relationship('Message', backref=db.backref('reactions', lazy=True, cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('reactions', lazy=True))
     
-    __table_args__ = (db.UniqueConstraint('message_id', 'user_id', name='unique_message_user_reaction'),)
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'message_id': self.message_id,
+            'user_id': self.user_id,
+            'user_name': self.user.name if self.user else None,
+            'reaction_type': self.reaction_type,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }

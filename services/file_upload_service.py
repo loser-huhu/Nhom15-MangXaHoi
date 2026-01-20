@@ -1,4 +1,3 @@
-
 import os
 import uuid
 from werkzeug.utils import secure_filename
@@ -21,8 +20,11 @@ class FileUploadService:
             filename = secure_filename(file.filename)
             unique_filename = f"{uuid.uuid4().hex}_{filename}"
             
-            # Lấy đường dẫn từ app config (đã sửa ở Bước 1)
+            # Lấy đường dẫn từ app config
             upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], folder_name)
+            
+            # Đảm bảo thư mục tồn tại
+            os.makedirs(upload_path, exist_ok=True)
             
             # Lưu file
             try:
@@ -32,3 +34,8 @@ class FileUploadService:
                 print(f"Save Error: {e}")
                 return None
         return None
+
+    @staticmethod
+    def save_background(file):
+        """Lưu ảnh nền chat"""
+        return FileUploadService.save_image(file, 'backgrounds')

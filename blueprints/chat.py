@@ -1,9 +1,10 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
-from extensions import db, socketio  # THÊM socketio vào đây
+from extensions import db, socketio
 from models.user import User
-from models.conversation import Conversation, Message, ConversationSettings  # THÊM ConversationSettings
+from models.conversation import Conversation, Message, ConversationSettings, Reaction  # Đã sửa import
 from datetime import datetime
+import os
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -44,17 +45,31 @@ def get_chat_detail_by_id(conversation_id):
             conversation_id=conversation_id
         ).first()
         
+        # Lấy reactions cho mỗi tin nhắn
+        messages_data = []
+        for m in messages:
+            msg_dict = m.to_dict()
+            # Lấy reactions của tin nhắn
+            reactions = Reaction.query.filter_by(message_id=m.id).all()
+            # Nhóm reactions theo type
+            reaction_summary = {}
+            for r in reactions:
+                reaction_summary[r.reaction_type] = reaction_summary.get(r.reaction_type, 0) + 1
+            msg_dict['reactions'] = reaction_summary
+            messages_data.append(msg_dict)
+        
         conv_dict = {
             'id': conv.id,
             **conv.to_dict(current_user.id),
-            'messages': [m.to_dict() for m in messages],
+            'messages': messages_data,
             'users': [u.to_dict() for u in conv.users]
         }
         
         if settings:
             conv_dict['settings'] = {
                 'nickname': settings.nickname,
-                'theme': settings.theme
+                'theme': settings.theme,
+                'background_image': settings.background_image
             }
         
         return jsonify({
@@ -95,41 +110,50 @@ def create_group():
         name = data.get('name')
         members = data.get('members')
         
+        if not name or not members:
+            return jsonify({'success': False, 'message': 'Thiếu thông tin'}), 400
+            
         group = Conversation(title=name, is_group=True, admin_id=current_user.id, updated_at=datetime.utcnow())
         group.users.append(current_user)
+        
         for uid in members:
             u = User.query.get(uid)
-            if u: group.users.append(u)
+            if u: 
+                group.users.append(u)
             
         db.session.add(group)
         db.session.commit()
         return jsonify({'success': True, 'conversation_id': group.id})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 5. LẤY BẠN BÈ
 @chat_bp.route('/friends', methods=['GET'])
 @login_required
 def get_friends_list():
-    from models.friend import FriendRequest
-    from sqlalchemy import or_
-    
-    # Lấy danh sách bạn bè thực sự
-    friend_requests = FriendRequest.query.filter(
-        ((FriendRequest.sender_id == current_user.id) | 
-         (FriendRequest.receiver_id == current_user.id)),
-        FriendRequest.status == 'accepted'
-    ).all()
-    
-    friend_ids = []
-    for fr in friend_requests:
-        if fr.sender_id == current_user.id:
-            friend_ids.append(fr.receiver_id)
-        else:
-            friend_ids.append(fr.sender_id)
-    
-    friends = User.query.filter(User.id.in_(friend_ids)).all()
-    return jsonify({'friends': [u.to_dict() for u in friends]})
+    try:
+        from models.friend import FriendRequest
+        from sqlalchemy import or_
+        
+        # Lấy danh sách bạn bè thực sự
+        friend_requests = FriendRequest.query.filter(
+            ((FriendRequest.sender_id == current_user.id) | 
+             (FriendRequest.receiver_id == current_user.id)),
+            FriendRequest.status == 'accepted'
+        ).all()
+        
+        friend_ids = []
+        for fr in friend_requests:
+            if fr.sender_id == current_user.id:
+                friend_ids.append(fr.receiver_id)
+            else:
+                friend_ids.append(fr.sender_id)
+        
+        friends = User.query.filter(User.id.in_(friend_ids)).all()
+        return jsonify({'friends': [u.to_dict() for u in friends]})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # 6. LẤY THÀNH VIÊN NHÓM
 @chat_bp.route('/group/<int:group_id>/members', methods=['GET'])
@@ -149,6 +173,7 @@ def get_group_members(group_id):
                 'id': u.id,
                 'name': u.name,
                 'avatar_url': u.avatar_url,
+                'phone_number': u.phone_number,
                 'is_admin': u.id == group.admin_id
             })
             
@@ -164,6 +189,9 @@ def leave_group():
         data = request.get_json()
         group_id = data.get('conversation_id')
         
+        if not group_id:
+            return jsonify({'success': False, 'message': 'Thiếu conversation_id'}), 400
+            
         group = Conversation.query.get(group_id)
         if not group:
             return jsonify({'success': False, 'message': 'Không tìm thấy nhóm'}), 404
@@ -179,6 +207,7 @@ def leave_group():
         
         return jsonify({'success': False, 'message': 'Bạn không ở trong nhóm này'}), 400
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 8. XÓA HỘI THOẠI
@@ -196,6 +225,7 @@ def delete_conversation(conv_id):
             
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 9. THU HỒI TIN NHẮN
@@ -222,6 +252,7 @@ def recall_message(message_id):
             
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 10. CHỈNH SỬA TIN NHẮN
@@ -240,6 +271,9 @@ def edit_message(message_id):
         if msg.sender_id != current_user.id:
             return jsonify({'success': False, 'message': 'Không có quyền chỉnh sửa tin nhắn này'}), 403
             
+        if msg.file_type:
+            return jsonify({'success': False, 'message': 'Không thể chỉnh sửa tin nhắn có file'}), 400
+            
         msg.content = new_content
         msg.is_edited = True
         msg.edited_at = datetime.utcnow()
@@ -256,6 +290,7 @@ def edit_message(message_id):
             
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 11. GHIM/BỎ GHIM TIN NHẮN
@@ -269,6 +304,7 @@ def toggle_pin_message(message_id):
         if current_user not in conv.users:
             return jsonify({'success': False, 'message': 'Bạn không có quyền'}), 403
             
+        # Nếu đang ghim thì bỏ ghim, nếu chưa ghim thì ghim (nhưng cho phép nhiều tin nhắn ghim)
         msg.is_pinned = not msg.is_pinned
         msg.pinned_at = datetime.utcnow() if msg.is_pinned else None
         
@@ -285,6 +321,7 @@ def toggle_pin_message(message_id):
             
         return jsonify({'success': True, 'is_pinned': msg.is_pinned})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 12. ĐẶT BIỆT DANH
@@ -318,19 +355,16 @@ def set_nickname(conversation_id):
         
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 13. ĐỔI THEME CHAT
-# Tìm và sửa function này
 @chat_bp.route('/conversation/<int:conversation_id>/set-theme', methods=['POST'])
 @login_required
 def set_conversation_theme(conversation_id):
     try:
         data = request.get_json()
         theme = data.get('theme', 'default').strip()
-        
-        # THÊM import ConversationSettings nếu chưa có
-        from models.conversation import ConversationSettings
         
         conv = Conversation.query.get_or_404(conversation_id)
         
@@ -359,7 +393,131 @@ def set_conversation_theme(conversation_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# 14. XEM HỒ SƠ
+# 14. ĐỔI ẢNH NỀN CHAT
+@chat_bp.route('/conversation/<int:conversation_id>/set-background', methods=['POST'])
+@login_required
+def set_background_image(conversation_id):
+    try:
+        if 'background' not in request.files:
+            return jsonify({'success': False, 'message': 'Không có file'}), 400
+            
+        file = request.files['background']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'Chưa chọn file'}), 400
+            
+        # Kiểm tra định dạng file
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        filename = file.filename.lower()
+        if '.' not in filename or filename.rsplit('.', 1)[1] not in allowed_extensions:
+            return jsonify({'success': False, 'message': 'Định dạng không hỗ trợ'}), 400
+        
+        # Lưu file
+        from services.file_upload_service import FileUploadService
+        bg_filename = FileUploadService.save_image(file, 'backgrounds')
+        
+        if not bg_filename:
+            return jsonify({'success': False, 'message': 'Lỗi lưu file'}), 500
+            
+        # Lưu vào database
+        settings = ConversationSettings.query.filter_by(
+            user_id=current_user.id,
+            conversation_id=conversation_id
+        ).first()
+        
+        if not settings:
+            settings = ConversationSettings(
+                user_id=current_user.id,
+                conversation_id=conversation_id,
+                background_image=bg_filename
+            )
+            db.session.add(settings)
+        else:
+            settings.background_image = bg_filename
+            
+        db.session.commit()
+        
+        return jsonify({'success': True, 'filename': bg_filename})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# 15. REACTION TIN NHẮN
+@chat_bp.route('/message/<int:message_id>/reaction', methods=['POST'])
+@login_required
+def add_reaction(message_id):
+    try:
+        data = request.get_json()
+        reaction_type = data.get('reaction_type', 'like')
+        
+        # Kiểm tra tin nhắn tồn tại
+        message = Message.query.get_or_404(message_id)
+        
+        # Kiểm tra user có trong conversation không
+        if current_user not in message.conversation.users:
+            return jsonify({'success': False, 'message': 'Không có quyền'}), 403
+        
+        # Kiểm tra đã reaction chưa
+        existing = Reaction.query.filter_by(
+            message_id=message_id,
+            user_id=current_user.id
+        ).first()
+        
+        if existing:
+            if existing.reaction_type == reaction_type:
+                # Nếu cùng reaction type thì xóa (toggle)
+                db.session.delete(existing)
+                action = 'removed'
+            else:
+                # Nếu khác thì cập nhật
+                existing.reaction_type = reaction_type
+                action = 'updated'
+        else:
+            # Tạo reaction mới
+            reaction = Reaction(
+                message_id=message_id,
+                user_id=current_user.id,
+                reaction_type=reaction_type
+            )
+            db.session.add(reaction)
+            action = 'added'
+        
+        db.session.commit()
+        
+        # Lấy tổng số reaction
+        reactions = Reaction.query.filter_by(message_id=message_id).all()
+        
+        # Gộp theo type
+        reaction_summary = {}
+        for r in reactions:
+            reaction_summary[r.reaction_type] = reaction_summary.get(r.reaction_type, 0) + 1
+        
+        # Gửi socket event
+        try:
+            socketio.emit('message_reacted', {
+                'message_id': message_id,
+                'user_id': current_user.id,
+                'user_name': current_user.name,
+                'reaction_type': reaction_type,
+                'action': action,
+                'reaction_summary': reaction_summary,
+                'conversation_id': message.conversation_id
+            }, room=str(message.conversation_id))
+        except:
+            pass
+        
+        return jsonify({
+            'success': True,
+            'action': action,
+            'reaction_summary': reaction_summary,
+            'total_reactions': len(reactions)
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# 16. XEM HỒ SƠ
 @chat_bp.route('/user-profile/<int:user_id>', methods=['GET'])
 @login_required
 def get_user_profile(user_id):
