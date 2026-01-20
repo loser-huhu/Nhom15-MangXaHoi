@@ -1,0 +1,22 @@
+# Bỏ qua thư mục ảo Python
+venv/
+.venv/
+env/
+
+# Bỏ qua cache (file rác khi chạy code)
+__pycache__/
+*.pyc
+
+# Bỏ qua Database cá nhân (Để mỗi người dùng 1 DB riêng, không đè lên nhau)
+instance/
+*.db
+*.sqlite3
+
+# Bỏ qua file môi trường chứa mật khẩu (Quan trọng)
+.env
+
+# Bỏ qua ảnh/file người dùng upload (Tùy chọn, thường không up file test lên git)
+static/uploads/avatars/*
+static/uploads/posts/*
+static/uploads/messages/*
+!static/uploads/avatars/default_avatar.png

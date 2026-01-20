@@ -1,0 +1,1222 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zalo Chat Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+      #welcome-screen {
+        display: flex;
+      }
+      #chat-interface {
+        display: none;
+      }
+      .modal-overlay {
+        background: rgba(0, 0, 0, 0.5);
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      .image-viewer {
+        background: rgba(0, 0, 0, 0.95);
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      #moreOptionsDropdown {
+        z-index: 100;
+        min-width: 200px;
+      }
+      .msg-sent {
+        background: #e3f2fd;
+        margin-left: auto;
+        border-radius: 12px 12px 0 12px;
+        max-width: 70%;
+      }
+      .msg-received {
+        background: #f3f4f6;
+        margin-right: auto;
+        border-radius: 12px 12px 12px 0;
+        max-width: 70%;
+      }
+      .context-menu {
+        position: absolute;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        min-width: 150px;
+        display: none;
+      }
+      .context-menu-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .context-menu-item:hover {
+        background: #f5f5f5;
+      }
+      .context-menu-divider {
+        height: 1px;
+        background: #eee;
+        margin: 4px 0;
+      }
+      .msg-menu {
+        display: none;
+        position: absolute;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+      }
+      .msg-menu-item {
+        padding: 8px 16px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .msg-menu-item:hover {
+        background: #f0f0f0;
+      }
+      .sidebar-item {
+        position: relative;
+      }
+      .message-item {
+        position: relative;
+        cursor: context-menu;
+      }
+      .pinned-message {
+        border-left: 3px solid #3b82f6;
+        background: #f0f9ff;
+      }
+      .edited-indicator {
+        font-size: 11px;
+        color: #666;
+        font-style: italic;
+        margin-left: 5px;
+      }
+      .recalled-message {
+        color: #999;
+        font-style: italic;
+      }
+      .dark-mode .context-menu,
+      .dark-mode .msg-menu {
+        background: #1f2937;
+        color: white;
+        border-color: #374151;
+      }
+      .dark-mode .context-menu-item:hover,
+      .dark-mode .msg-menu-item:hover {
+        background: #374151;
+      }
+      body.dark-mode {
+        background: #111827;
+        color: white;
+      }
+      body.dark-mode .bg-white {
+        background: #1f2937;
+        border-color: #374151;
+        color: white;
+      }
+      body.dark-mode .msg-sent {
+        background: #1e40af;
+        color: white;
+      }
+      body.dark-mode .msg-received {
+        background: #374151;
+        color: white;
+      }
+      body.dark-mode input {
+        background: #374151;
+        color: white;
+        border-color: #4b5563;
+      }
+      body.dark-mode .hover\:bg-gray-100:hover {
+        background: #374151;
+      }
+    </style>
+  </head>
+  <body class="h-screen flex flex-col overflow-hidden" id="body">
+    <!-- Image Viewer -->
+    <div id="imgViewer" class="image-viewer">
+      <button
+        onclick="closeViewer()"
+        class="absolute top-5 right-5 text-white bg-gray-800 p-2 rounded-full hover:bg-gray-700 z-50"
+      >
+        <i data-lucide="x" class="w-8 h-8"></i>
+      </button>
+      <img
+        id="viewerImg"
+        src=""
+        class="max-h-screen max-w-screen object-contain transition-transform duration-200"
+      />
+    </div>
+
+    <!-- Group Modal -->
+    <div id="groupModal" class="modal-overlay">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl w-96 shadow-2xl">
+        <h3 class="text-xl font-bold mb-4">Tạo nhóm mới</h3>
+        <input
+          type="text"
+          id="newGroupName"
+          placeholder="Đặt tên nhóm..."
+          class="w-full px-4 py-2 border rounded mb-4 dark:bg-gray-700"
+        />
+        <div
+          id="friendListContainer"
+          class="h-40 overflow-y-auto border rounded p-2 mb-4 space-y-2"
+        ></div>
+        <div class="flex justify-end gap-2">
+          <button
+            onclick="toggleModal('groupModal')"
+            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+          >
+            Hủy
+          </button>
+          <button
+            onclick="submitCreateGroup()"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Tạo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Members Modal -->
+    <div id="membersModal" class="modal-overlay">
+      <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-xl w-96 max-h-[80vh] flex flex-col shadow-2xl"
+      >
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold">Thành viên nhóm</h3>
+          <button onclick="toggleModal('membersModal')" class="text-gray-500">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div id="membersList" class="space-y-3 overflow-y-auto flex-1"></div>
+      </div>
+    </div>
+
+    <!-- Nickname Modal -->
+    <div id="nicknameModal" class="modal-overlay">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl w-96 shadow-2xl">
+        <h3 class="text-xl font-bold mb-4">Đặt biệt danh</h3>
+        <input
+          type="text"
+          id="nicknameInput"
+          placeholder="Nhập biệt danh..."
+          class="w-full px-4 py-2 border rounded mb-4 dark:bg-gray-700"
+        />
+        <div class="flex justify-end gap-2">
+          <button
+            onclick="toggleModal('nicknameModal')"
+            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+          >
+            Hủy
+          </button>
+          <button
+            onclick="saveNickname()"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Lưu
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Theme Modal -->
+    <div id="themeModal" class="modal-overlay">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl w-96 shadow-2xl">
+        <h3 class="text-xl font-bold mb-4">Chọn theme chat</h3>
+        <div class="grid grid-cols-3 gap-3 mb-4">
+          <div
+            class="theme-option bg-blue-100 border-2 border-blue-300 rounded-lg p-4 cursor-pointer"
+            onclick="selectTheme('blue')"
+          >
+            <div class="h-8 rounded bg-blue-500 mb-2"></div>
+            <div class="text-center text-sm">Xanh dương</div>
+          </div>
+          <div
+            class="theme-option bg-green-100 border-2 border-transparent rounded-lg p-4 cursor-pointer"
+            onclick="selectTheme('green')"
+          >
+            <div class="h-8 rounded bg-green-500 mb-2"></div>
+            <div class="text-center text-sm">Xanh lá</div>
+          </div>
+          <div
+            class="theme-option bg-purple-100 border-2 border-transparent rounded-lg p-4 cursor-pointer"
+            onclick="selectTheme('purple')"
+          >
+            <div class="h-8 rounded bg-purple-500 mb-2"></div>
+            <div class="text-center text-sm">Tím</div>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button
+            onclick="toggleModal('themeModal')"
+            class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+          >
+            Hủy
+          </button>
+          <button
+            onclick="saveTheme()"
+            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Áp dụng
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal-overlay">
+      <div class="bg-white dark:bg-gray-800 p-6 rounded-xl w-96 shadow-2xl">
+        <div class="text-center mb-6">
+          <img
+            id="profileModalAvatar"
+            src=""
+            class="w-24 h-24 rounded-full mx-auto mb-3 border-4 border-white shadow"
+          />
+          <h3 id="profileModalName" class="text-xl font-bold"></h3>
+          <p id="profileModalPhone" class="text-gray-500"></p>
+        </div>
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <span class="font-medium">Ngày tham gia:</span
+            ><span id="profileModalJoinDate"></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-medium">Bài viết:</span
+            ><span id="profileModalPostCount">0</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-medium">Bạn bè:</span
+            ><span id="profileModalFriendCount">0</span>
+          </div>
+        </div>
+        <div class="mt-6 flex justify-center">
+          <button
+            onclick="toggleModal('profileModal')"
+            class="px-6 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:opacity-90"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context menu cho tin nhắn -->
+    <div id="messageContextMenu" class="msg-menu">
+      <div class="msg-menu-item" onclick="recallMessage()">Thu hồi</div>
+      <div class="msg-menu-item" onclick="editMessage()">Chỉnh sửa</div>
+      <div class="msg-menu-item" onclick="togglePinMessage()" id="pinMenuItem">
+        Ghim
+      </div>
+      <div class="context-menu-divider"></div>
+      <div class="msg-menu-item" onclick="copyMessage()">Sao chép</div>
+    </div>
+
+    <!-- Context menu cho sidebar -->
+    <div id="sidebarContextMenu" class="context-menu">
+      <div class="context-menu-item" onclick="markAsUnread()">
+        Đánh dấu chưa đọc
+      </div>
+      <div class="context-menu-item" onclick="muteConversation()">
+        Tắt thông báo
+      </div>
+      <div class="context-menu-divider"></div>
+      <div
+        class="context-menu-item text-red-600"
+        onclick="deleteConversationFromSidebar()"
+      >
+        Xóa hội thoại
+      </div>
+    </div>
+
+    <!-- Main Navigation -->
+    <nav
+      class="h-14 border-b flex items-center justify-between px-4 bg-white shadow-sm shrink-0 z-40"
+    >
+      <div
+        class="flex items-center gap-3 cursor-pointer"
+        onclick="location.href = '/'"
+      >
+        <i data-lucide="arrow-left" class="w-6"></i>
+        <span class="font-bold text-lg">Zalo Chat</span>
+      </div>
+      <button
+        onclick="openGroupModal()"
+        class="p-2 hover:bg-gray-100 rounded-full text-blue-600"
+        title="Tạo nhóm"
+      >
+        <i data-lucide="users-round" class="w-6"></i>
+      </button>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden">
+      <!-- Sidebar -->
+      <div class="w-1/3 md:w-1/4 border-r bg-white flex flex-col">
+        <div class="p-3 border-b">
+          <input
+            type="text"
+            placeholder="Tìm kiếm..."
+            class="w-full px-3 py-2 border rounded-full bg-gray-50 text-sm"
+          />
+        </div>
+        <div id="sidebarList" class="flex-1 overflow-y-auto p-1"></div>
+      </div>
+
+      <!-- Chat Area -->
+      <div class="flex-1 relative bg-gray-50 flex flex-col">
+        <div
+          id="welcome-screen"
+          class="absolute inset-0 flex flex-col items-center justify-center bg-white z-10"
+        >
+          <i
+            data-lucide="message-square"
+            class="w-20 h-20 text-blue-100 mb-4"
+          ></i>
+          <p class="text-gray-500">Chọn hội thoại để bắt đầu</p>
+        </div>
+
+        <div
+          id="chat-interface"
+          class="flex-1 flex-col h-full bg-white z-20 hidden"
+        >
+          <!-- Chat Header -->
+          <div
+            class="h-16 border-b bg-white flex items-center px-4 justify-between shrink-0 shadow-sm relative"
+          >
+            <div class="flex items-center gap-3">
+              <img
+                id="headerAvatar"
+                src=""
+                class="w-10 h-10 rounded-full border object-cover"
+              />
+              <div>
+                <h3 id="headerName" class="font-bold text-lg">Loading...</h3>
+                <div class="flex items-center gap-1 text-xs text-green-500">
+                  Online
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-1 relative">
+              <button class="p-2 hover:bg-gray-100 rounded-full">
+                <i data-lucide="phone" class="w-5"></i>
+              </button>
+              <button class="p-2 hover:bg-gray-100 rounded-full">
+                <i data-lucide="video" class="w-5"></i>
+              </button>
+              <button
+                id="btnMoreOptions"
+                onclick="toggleMoreOptions(event)"
+                class="p-2 hover:bg-gray-100 rounded-full"
+              >
+                <i data-lucide="more-horizontal" class="w-5"></i>
+              </button>
+              <div
+                id="moreOptionsDropdown"
+                class="hidden absolute right-0 top-12 bg-white dark:bg-gray-800 shadow-xl rounded-lg py-2 border dark:border-gray-600"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Messages -->
+          <div
+            id="msgList"
+            class="flex-1 overflow-y-auto p-4 space-y-3 pb-4 bg-gray-100 dark:bg-gray-900"
+          ></div>
+
+          <!-- Message Input -->
+          <div class="p-3 bg-white border-t flex gap-2 items-center shrink-0">
+            <div
+              id="previewArea"
+              class="hidden absolute bottom-16 left-4 bg-white p-2 border shadow rounded flex items-center gap-2"
+            >
+              <span
+                id="previewName"
+                class="text-xs truncate max-w-[100px]"
+              ></span>
+              <img id="previewImg" class="h-12 w-12 object-cover rounded" />
+              <button onclick="clearFiles()" class="text-red-500">
+                <i data-lucide="x" class="w-4"></i>
+              </button>
+            </div>
+            <button
+              onclick="document.getElementById('imgInput').click()"
+              class="p-2 text-gray-500 hover:text-blue-600 rounded-full"
+            >
+              <i data-lucide="image"></i>
+            </button>
+            <button
+              onclick="document.getElementById('fileInput').click()"
+              class="p-2 text-gray-500 hover:text-blue-600 rounded-full"
+            >
+              <i data-lucide="paperclip"></i>
+            </button>
+            <input
+              type="text"
+              id="inputMsg"
+              class="flex-1 px-4 py-2.5 border rounded-full bg-gray-50 focus:outline-none focus:border-blue-500"
+              placeholder="Nhập tin nhắn..."
+            />
+            <button
+              onclick="sendMsg()"
+              class="p-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow"
+            >
+              <i data-lucide="send" class="w-5"></i>
+            </button>
+            <input type="file" id="imgInput" hidden accept="image/*" />
+            <input type="file" id="fileInput" hidden />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Khởi tạo biến toàn cục
+      lucide.createIcons();
+      let socket = io();
+      let currentUser = null;
+      let currentConvId = null;
+      let currentConv = null;
+      let selectedFile = null;
+      let selectedMessageId = null;
+      let selectedSidebarItemId = null;
+      let selectedTheme = "blue";
+
+      // Hàm helper
+      function getAvatar(url) {
+        if (!url || url.includes("default"))
+          return "/static/uploads/avatars/default_avatar.png";
+        if (url.startsWith("http")) return url;
+        let clean = url
+          .replace("avatars/", "")
+          .replace("static/", "")
+          .replace("uploads/", "");
+        return `/static/uploads/avatars/${clean}`;
+      }
+
+      function showToast(message, type = "info") {
+        // Tạo toast đơn giản
+        alert(message);
+      }
+
+      // --- CONTEXT MENU CHO TIN NHẮN ---
+      document.addEventListener("contextmenu", function (e) {
+        const msgElement = e.target.closest(".msg-sent, .msg-received");
+        if (msgElement && currentConvId) {
+          e.preventDefault();
+          selectedMessageId = msgElement.dataset.messageId;
+          const menu = document.getElementById("messageContextMenu");
+          const pinItem = document.getElementById("pinMenuItem");
+
+          // Kiểm tra quyền
+          const msg = currentConv.messages?.find(
+            (m) => m.id == selectedMessageId,
+          );
+          if (msg) {
+            const recallItem = menu.querySelector(
+              '[onclick="recallMessage()"]',
+            );
+            const editItem = menu.querySelector('[onclick="editMessage()"]');
+            recallItem.style.display =
+              msg.sender_id === currentUser.id ? "block" : "none";
+            editItem.style.display =
+              msg.sender_id === currentUser.id ? "block" : "none";
+            pinItem.textContent = msg.is_pinned ? "Bỏ ghim" : "Ghim";
+          }
+
+          menu.style.display = "block";
+          menu.style.left = e.pageX + "px";
+          menu.style.top = e.pageY + "px";
+        }
+      });
+
+      // Đóng menu khi click ra ngoài
+      document.addEventListener("click", function (e) {
+        const menu = document.getElementById("messageContextMenu");
+        const sidebarMenu = document.getElementById("sidebarContextMenu");
+        if (menu && !menu.contains(e.target)) menu.style.display = "none";
+        if (sidebarMenu && !sidebarMenu.contains(e.target))
+          sidebarMenu.style.display = "none";
+      });
+
+      // --- CONTEXT MENU CHO SIDEBAR ---
+      document
+        .getElementById("sidebarList")
+        .addEventListener("contextmenu", function (e) {
+          const sidebarItem = e.target.closest(
+            'div[class*="hover:bg-gray-100"]',
+          );
+          if (sidebarItem) {
+            e.preventDefault();
+            selectedSidebarItemId = sidebarItem.dataset.convId;
+            const menu = document.getElementById("sidebarContextMenu");
+            menu.style.display = "block";
+            menu.style.left = e.pageX + "px";
+            menu.style.top = e.pageY + "px";
+          }
+        });
+
+      // --- HÀM RENDER TIN NHẮN ---
+      function renderMsg(msg) {
+        const box = document.getElementById("msgList");
+        if (!box) return;
+
+        const isMe = msg.sender_id === currentUser.id;
+        const div = document.createElement("div");
+        div.className = `p-3 mb-2 shadow-sm text-sm message-item ${isMe ? "msg-sent" : "msg-received"} ${msg.is_pinned ? "pinned-message" : ""}`;
+        div.dataset.messageId = msg.id;
+
+        let html = "";
+        if (msg.sender_name && !isMe) {
+          html += `<div class="text-[10px] font-bold text-gray-500 mb-1">${msg.sender_name}</div>`;
+        }
+
+        if (msg.is_recalled) {
+          html += `<div class="recalled-message italic">${msg.content}</div>`;
+        } else if (msg.file_type === "image") {
+          html += `<img src="/static/uploads/messages/${msg.file_url}" class="rounded-lg max-w-[200px] cursor-zoom-in hover:opacity-90" onclick="viewImage(this.src)">`;
+        } else if (msg.file_type === "file") {
+          html += `<a href="/static/uploads/messages/${msg.file_url}" download class="flex items-center gap-2 text-blue-600 hover:underline bg-white p-2 rounded border"><i data-lucide="file-text"></i> ${msg.file_name}</a>`;
+        } else {
+          html += `<div>${msg.content}</div>`;
+        }
+
+        if (msg.is_edited) {
+          html += `<span class="edited-indicator">(đã chỉnh sửa)</span>`;
+        }
+
+        html += `<div class="text-[9px] text-right mt-1 opacity-50">${new Date(msg.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</div>`;
+
+        div.innerHTML = html;
+        box.appendChild(div);
+        lucide.createIcons();
+      }
+
+      // --- HÀM XỬ LÝ TIN NHẮN ---
+      async function recallMessage() {
+        if (!selectedMessageId) return;
+        if (!confirm("Thu hồi tin nhắn này?")) return;
+
+        try {
+          socket.emit("recall_message", {
+            message_id: parseInt(selectedMessageId),
+          });
+          const msgElement = document.querySelector(
+            `[data-message-id="${selectedMessageId}"]`,
+          );
+          if (msgElement) {
+            msgElement.querySelector("div:first-child").innerHTML =
+              '<div class="recalled-message italic">[Tin nhắn đã được thu hồi]</div>';
+          }
+          document.getElementById("messageContextMenu").style.display = "none";
+        } catch (e) {
+          console.error("Recall error:", e);
+        }
+      }
+
+      async function editMessage() {
+        if (!selectedMessageId) return;
+        const newContent = prompt("Chỉnh sửa tin nhắn:", "");
+        if (newContent === null || newContent.trim() === "") return;
+
+        try {
+          socket.emit("edit_message", {
+            message_id: parseInt(selectedMessageId),
+            content: newContent.trim(),
+          });
+          const msgElement = document.querySelector(
+            `[data-message-id="${selectedMessageId}"]`,
+          );
+          if (msgElement) {
+            const contentDiv = msgElement.querySelector("div:first-child");
+            contentDiv.innerHTML = `${newContent} <span class="edited-indicator">(đã chỉnh sửa)</span>`;
+          }
+          document.getElementById("messageContextMenu").style.display = "none";
+        } catch (e) {
+          console.error("Edit error:", e);
+        }
+      }
+
+      async function togglePinMessage() {
+        if (!selectedMessageId) return;
+        try {
+          socket.emit("pin_message", {
+            message_id: parseInt(selectedMessageId),
+          });
+          const msgElement = document.querySelector(
+            `[data-message-id="${selectedMessageId}"]`,
+          );
+          if (msgElement) {
+            msgElement.classList.toggle("pinned-message");
+            const pinItem = document.getElementById("pinMenuItem");
+            pinItem.textContent = msgElement.classList.contains(
+              "pinned-message",
+            )
+              ? "Bỏ ghim"
+              : "Ghim";
+          }
+        } catch (e) {
+          console.error("Pin error:", e);
+        }
+      }
+
+      function copyMessage() {
+        const msgElement = document.querySelector(
+          `[data-message-id="${selectedMessageId}"]`,
+        );
+        if (msgElement) {
+          const text = msgElement.querySelector("div:first-child").textContent;
+          navigator.clipboard.writeText(text).then(() => {
+            alert("Đã sao chép tin nhắn");
+          });
+        }
+        document.getElementById("messageContextMenu").style.display = "none";
+      }
+
+      // --- SOCKET LISTENERS MỚI ---
+      socket.on("message_recalled", (data) => {
+        const msgElement = document.querySelector(
+          `[data-message-id="${data.message_id}"]`,
+        );
+        if (msgElement) {
+          msgElement.querySelector("div:first-child").innerHTML =
+            '<div class="recalled-message italic">[Tin nhắn đã được thu hồi]</div>';
+        }
+      });
+
+      socket.on("message_edited", (data) => {
+        const msgElement = document.querySelector(
+          `[data-message-id="${data.message_id}"]`,
+        );
+        if (msgElement) {
+          const contentDiv = msgElement.querySelector("div:first-child");
+          contentDiv.innerHTML = `${data.new_content} <span class="edited-indicator">(đã chỉnh sửa)</span>`;
+        }
+      });
+
+      socket.on("message_pinned", (data) => {
+        const msgElement = document.querySelector(
+          `[data-message-id="${data.message_id}"]`,
+        );
+        if (msgElement) {
+          if (data.is_pinned) {
+            msgElement.classList.add("pinned-message");
+          } else {
+            msgElement.classList.remove("pinned-message");
+          }
+        }
+      });
+
+      // --- CẬP NHẬT MENU 3 CHẤM ---
+      function toggleMoreOptions(event) {
+        event.stopPropagation();
+        const menu = document.getElementById("moreOptionsDropdown");
+        if (!currentConv) return;
+
+        let html = "";
+        if (currentConv.is_group) {
+          html = `
+                    <a href="#" onclick="viewGroupMembers()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex gap-2">
+                        <i data-lucide="users" class="w-4"></i> Xem thành viên
+                    </a>
+                    <a href="#" onclick="openNicknameModal()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex gap-2">
+                        <i data-lucide="tag" class="w-4"></i> Đặt biệt danh
+                    </a>
+                    <a href="#" onclick="openThemeModal()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex gap-2">
+                        <i data-lucide="palette" class="w-4"></i> Đổi theme chat
+                    </a>
+                    <div class="border-t my-1 dark:border-gray-600"></div>
+                    <a href="#" onclick="viewProfile()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex gap-2">
+                        <i data-lucide="user" class="w-4"></i> Xem hồ sơ
+                    </a>
+                    <a href="#" onclick="leaveGroup()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 flex gap-2">
+                        <i data-lucide="log-out" class="w-4"></i> Rời nhóm
+                    </a>
+                `;
+        } else {
+          html = `
+                    <a href="#" onclick="viewProfile()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex gap-2">
+                        <i data-lucide="user" class="w-4"></i> Xem hồ sơ
+                    </a>
+                    <a href="#" onclick="openNicknameModal()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex gap-2">
+                        <i data-lucide="tag" class="w-4"></i> Đặt biệt danh
+                    </a>
+                    <a href="#" onclick="openThemeModal()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 flex gap-2">
+                        <i data-lucide="palette" class="w-4"></i> Đổi theme chat
+                    </a>
+                    <a href="#" onclick="deleteConversation()" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 flex gap-2">
+                        <i data-lucide="trash-2" class="w-4"></i> Xóa hội thoại
+                    </a>
+                `;
+        }
+
+        menu.innerHTML = html;
+        lucide.createIcons();
+        menu.classList.toggle("hidden");
+      }
+
+      // --- HÀM XEM HỒ SƠ ---
+      async function viewProfile() {
+        try {
+          let targetUserId;
+          if (currentConv.is_group) {
+            targetUserId = currentUser.id;
+          } else {
+            const otherUser = currentConv.users?.find(
+              (u) => u.id !== currentUser.id,
+            );
+            targetUserId = otherUser ? otherUser.id : currentUser.id;
+          }
+
+          const res = await fetch(`/chat/user-profile/${targetUserId}`);
+          const data = await res.json();
+
+          if (data.success) {
+            const user = data.user;
+            document.getElementById("profileModalAvatar").src = getAvatar(
+              user.avatar_url,
+            );
+            document.getElementById("profileModalName").textContent = user.name;
+            document.getElementById("profileModalPhone").textContent =
+              user.phone_number;
+            document.getElementById("profileModalJoinDate").textContent =
+              new Date(user.created_at).toLocaleDateString("vi-VN");
+            document.getElementById("profileModalPostCount").textContent =
+              user.post_count || 0;
+            document.getElementById("profileModalFriendCount").textContent =
+              user.friend_count || 0;
+
+            toggleModal("profileModal");
+            document
+              .getElementById("moreOptionsDropdown")
+              .classList.add("hidden");
+          }
+        } catch (e) {
+          console.error("Profile error:", e);
+        }
+      }
+
+      // --- HÀM ĐẶT BIỆT DANH ---
+      function openNicknameModal() {
+        toggleModal("nicknameModal");
+        document.getElementById("moreOptionsDropdown").classList.add("hidden");
+      }
+
+      async function saveNickname() {
+        const nickname = document.getElementById("nicknameInput").value.trim();
+        if (!currentConvId) return;
+
+        try {
+          let targetUserId = null;
+          if (!currentConv.is_group) {
+            const otherUser = currentConv.users?.find(
+              (u) => u.id !== currentUser.id,
+            );
+            targetUserId = otherUser ? otherUser.id : null;
+          }
+
+          const res = await fetch(
+            `/chat/conversation/${currentConvId}/set-nickname`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ target_user_id: targetUserId, nickname }),
+            },
+          );
+
+          const data = await res.json();
+          if (data.success) {
+            alert("Đã lưu biệt danh");
+            toggleModal("nicknameModal");
+          }
+        } catch (e) {
+          console.error("Nickname error:", e);
+        }
+      }
+
+      // --- HÀM ĐỔI THEME ---
+      function openThemeModal() {
+        toggleModal("themeModal");
+        document.getElementById("moreOptionsDropdown").classList.add("hidden");
+      }
+
+      function selectTheme(theme) {
+        selectedTheme = theme;
+        document.querySelectorAll(".theme-option").forEach((el) => {
+          el.classList.remove(
+            "border-blue-300",
+            "border-green-300",
+            "border-purple-300",
+          );
+          el.classList.add("border-transparent");
+        });
+
+        const clickedEl = event.target.closest(".theme-option");
+        if (clickedEl) {
+          clickedEl.classList.remove("border-transparent");
+          if (theme === "blue") clickedEl.classList.add("border-blue-300");
+          else if (theme === "green")
+            clickedEl.classList.add("border-green-300");
+          else if (theme === "purple")
+            clickedEl.classList.add("border-purple-300");
+        }
+      }
+
+      async function saveTheme() {
+        if (!currentConvId) return;
+        try {
+          const res = await fetch(
+            `/chat/conversation/${currentConvId}/set-theme`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ theme: selectedTheme }),
+            },
+          );
+
+          const data = await res.json();
+          if (data.success) {
+            alert("Đã áp dụng theme");
+            toggleModal("themeModal");
+          }
+        } catch (e) {
+          console.error("Theme error:", e);
+        }
+      }
+
+      // --- HÀM CHO SIDEBAR CONTEXT MENU ---
+      function markAsUnread() {
+        if (!selectedSidebarItemId) return;
+        alert("Đã đánh dấu là chưa đọc (chức năng đang phát triển)");
+        document.getElementById("sidebarContextMenu").style.display = "none";
+      }
+
+      function muteConversation() {
+        if (!selectedSidebarItemId) return;
+        alert("Đã tắt thông báo (chức năng đang phát triển)");
+        document.getElementById("sidebarContextMenu").style.display = "none";
+      }
+
+      function deleteConversationFromSidebar() {
+        if (!selectedSidebarItemId) return;
+        if (confirm("Xóa hội thoại này?")) {
+          fetch(`/chat/conversation/${selectedSidebarItemId}`, {
+            method: "DELETE",
+          }).then(() => location.reload());
+        }
+        document.getElementById("sidebarContextMenu").style.display = "none";
+      }
+
+      // --- CORE CHAT FUNCTIONS ---
+      async function loadSidebar() {
+        try {
+          const res = await fetch("/chat/conversations");
+          const data = await res.json();
+          const list = document.getElementById("sidebarList");
+          list.innerHTML = "";
+
+          if (data.success && data.conversations) {
+            data.conversations.forEach((c) => {
+              const div = document.createElement("div");
+              div.className = `p-3 flex gap-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer items-center border-b border-gray-50 ${currentConvId == c.id ? "bg-blue-50 dark:bg-gray-700" : ""}`;
+              div.dataset.convId = c.id;
+              div.onclick = () => loadChatContent(c.id);
+
+              let preview = c.last_message
+                ? c.last_message.file_type
+                  ? `[${c.last_message.file_type}]`
+                  : c.last_message.content
+                : "Bắt đầu trò chuyện";
+              let avatar = c.avatar.includes("default")
+                ? "/static/uploads/avatars/default_avatar.png"
+                : `/static/uploads/avatars/${c.avatar}`;
+              if (c.is_group)
+                avatar =
+                  "https://cdn-icons-png.flaticon.com/512/681/681494.png";
+
+              div.innerHTML = `
+                            <img src="${avatar}" class="w-12 h-12 rounded-full object-cover border">
+                            <div class="overflow-hidden flex-1">
+                                <h4 class="font-bold truncate">${c.name}</h4>
+                                <p class="text-sm text-gray-500 truncate">${preview}</p>
+                            </div>
+                        `;
+              list.appendChild(div);
+            });
+          }
+        } catch (e) {
+          console.error("Load sidebar error:", e);
+        }
+      }
+
+      async function loadChatContent(convId) {
+        try {
+          currentConvId = convId;
+          const res = await fetch(`/chat/detail/${convId}`);
+          const data = await res.json();
+
+          if (data.success) {
+            currentConv = data.conversation;
+            document.getElementById("welcome-screen").style.display = "none";
+            document.getElementById("chat-interface").style.display = "flex";
+            document.getElementById("headerName").innerText = currentConv.name;
+
+            let avatar = currentConv.avatar.includes("default")
+              ? "/static/uploads/avatars/default_avatar.png"
+              : `/static/uploads/avatars/${currentConv.avatar}`;
+            if (currentConv.is_group)
+              avatar = "https://cdn-icons-png.flaticon.com/512/681/681494.png";
+            document.getElementById("headerAvatar").src = avatar;
+
+            const box = document.getElementById("msgList");
+            box.innerHTML = "";
+            if (currentConv.messages) {
+              currentConv.messages.forEach(renderMsg);
+            }
+            scrollToBottom();
+
+            socket.emit("join_conversation", { conversation_id: convId });
+            window.history.pushState({}, "", `/chat?id=${convId}`);
+            document
+              .getElementById("moreOptionsDropdown")
+              .classList.add("hidden");
+            loadSidebar();
+          }
+        } catch (e) {
+          console.error("Load chat error:", e);
+        }
+      }
+
+      async function sendMsg() {
+        const input = document.getElementById("inputMsg");
+        const txt = input.value.trim();
+        if (!txt && !selectedFile) return;
+
+        let fileData = { url: null, name: null, type: null };
+        if (selectedFile) {
+          const fd = new FormData();
+          fd.append("file", selectedFile);
+          try {
+            const res = await fetch("/upload/file", {
+              method: "POST",
+              body: fd,
+            });
+            const d = await res.json();
+            if (d.success)
+              fileData = {
+                url: d.filename,
+                name: d.original_name,
+                type: d.type,
+              };
+          } catch (e) {}
+        }
+
+        socket.emit("send_message", {
+          conversation_id: currentConvId,
+          content: txt,
+          file_url: fileData.url,
+          file_name: fileData.name,
+          file_type: fileData.type,
+        });
+
+        input.value = "";
+        clearFiles();
+      }
+
+      // --- GROUP ACTIONS ---
+      async function viewGroupMembers() {
+        try {
+          const res = await fetch(`/chat/group/${currentConvId}/members`);
+          const data = await res.json();
+          if (data.success) {
+            const list = document.getElementById("membersList");
+            list.innerHTML = "";
+            data.members.forEach((m) => {
+              let avatar = m.avatar_url.includes("default")
+                ? "/static/uploads/avatars/default_avatar.png"
+                : `/static/uploads/avatars/${m.avatar_url}`;
+              list.innerHTML += `
+                            <div class="flex items-center justify-between p-2 hover:bg-gray-100 rounded">
+                                <div class="flex items-center gap-3">
+                                    <img src="${avatar}" class="w-10 h-10 rounded-full object-cover">
+                                    <div>
+                                        <div class="font-bold flex items-center gap-1">
+                                            ${m.name} 
+                                            ${m.is_admin ? '<i data-lucide="crown" class="w-3 h-3 text-yellow-500"></i>' : ""}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+            });
+            lucide.createIcons();
+            toggleModal("membersModal");
+            document
+              .getElementById("moreOptionsDropdown")
+              .classList.add("hidden");
+          }
+        } catch (e) {}
+      }
+
+      async function leaveGroup() {
+        if (!confirm("Rời nhóm này?")) return;
+        const res = await fetch("/chat/group/leave", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ conversation_id: currentConvId }),
+        });
+        const data = await res.json();
+        if (data.success) location.reload();
+      }
+
+      async function deleteConversation() {
+        if (!confirm("Xóa hội thoại này?")) return;
+        await fetch(`/chat/conversation/${currentConvId}`, {
+          method: "DELETE",
+        });
+        location.reload();
+      }
+
+      // --- HELPERS ---
+      window.viewImage = (src) => {
+        document.getElementById("viewerImg").src = src;
+        document.getElementById("imgViewer").style.display = "flex";
+      };
+      window.closeViewer = () =>
+        (document.getElementById("imgViewer").style.display = "none");
+      window.toggleModal = (id) => {
+        const el = document.getElementById(id);
+        el.style.display = el.style.display === "flex" ? "none" : "flex";
+      };
+
+      function handleFile(e) {
+        if (e.target.files[0]) {
+          selectedFile = e.target.files[0];
+          document.getElementById("previewArea").classList.remove("hidden");
+          document.getElementById("previewName").innerText = selectedFile.name;
+          if (selectedFile.type.startsWith("image/")) {
+            document.getElementById("previewImg").src =
+              URL.createObjectURL(selectedFile);
+            document.getElementById("previewImg").classList.remove("hidden");
+          } else {
+            document.getElementById("previewImg").classList.add("hidden");
+          }
+        }
+      }
+      window.clearFiles = () => {
+        selectedFile = null;
+        document.getElementById("previewArea").classList.add("hidden");
+        document.getElementById("imgInput").value = "";
+        document.getElementById("fileInput").value = "";
+      };
+      document.getElementById("imgInput").onchange = handleFile;
+      document.getElementById("fileInput").onchange = handleFile;
+
+      async function openGroupModal() {
+        toggleModal("groupModal");
+        const res = await fetch("/chat/friends");
+        const data = await res.json();
+        const list = document.getElementById("friendListContainer");
+        list.innerHTML = "";
+        if (data.friends) {
+          data.friends.forEach((f) => {
+            list.innerHTML += `<div class="flex items-center gap-3 p-2 hover:bg-gray-100 rounded"><input type="checkbox" value="${f.id}" class="group-check w-4 h-4"><span>${f.name}</span></div>`;
+          });
+        }
+      }
+
+      async function submitCreateGroup() {
+        const name = document.getElementById("newGroupName").value;
+        const ids = Array.from(
+          document.querySelectorAll(".group-check:checked"),
+        ).map((c) => parseInt(c.value));
+        if (!name || ids.length === 0)
+          return alert("Nhập tên và chọn thành viên");
+
+        const res = await fetch("/chat/group/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, members: ids }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          toggleModal("groupModal");
+          loadChatContent(data.conversation_id);
+        }
+      }
+
+      function scrollToBottom() {
+        const b = document.getElementById("msgList");
+        if (b) b.scrollTop = b.scrollHeight;
+      }
+      document.getElementById("inputMsg").onkeypress = (e) => {
+        if (e.key === "Enter") sendMsg();
+      };
+
+      // --- INIT ---
+      async function init() {
+        try {
+          const res = await fetch("/auth/check-auth");
+          const data = await res.json();
+          if (!data.authenticated) return (location.href = "/login");
+          currentUser = data.user;
+          if (currentUser.theme === "dark")
+            document.getElementById("body").classList.add("dark-mode");
+
+          socket.on("connect", () => {
+            socket.emit("join_conversation", {
+              conversation_id: `user_${currentUser.id}`,
+            });
+          });
+
+          socket.on("receive_message", (msg) => {
+            if (currentConvId == msg.conversation_id) {
+              renderMsg(msg);
+              scrollToBottom();
+            }
+            loadSidebar();
+          });
+
+          document.addEventListener("click", (e) => {
+            const menu = document.getElementById("moreOptionsDropdown");
+            const btn = document.getElementById("btnMoreOptions");
+            if (
+              menu &&
+              !menu.contains(e.target) &&
+              (!btn || !btn.contains(e.target))
+            ) {
+              menu.classList.add("hidden");
+            }
+          });
+
+          await loadSidebar();
+
+          const params = new URLSearchParams(location.search);
+          const targetId = params.get("user");
+          if (targetId) {
+            const r = await fetch(`/chat/find-or-create/${targetId}`);
+            const d = await r.json();
+            if (d.success) loadChatContent(d.conversation_id);
+          }
+        } catch (e) {
+          console.error("Init error:", e);
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>

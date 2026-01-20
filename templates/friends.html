@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zalo Clone - Bạn bè</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    />
+    <style>
+      .gradient-bg {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      }
+      .tab-button.active {
+        border-bottom: 3px solid #3b82f6;
+        color: #3b82f6;
+      }
+      body.dark-mode {
+        background: #111827 !important;
+        color: #f3f4f6 !important;
+      }
+      body.dark-mode .bg-white {
+        background-color: #1f2937 !important;
+        border-color: #374151 !important;
+        color: #f3f4f6 !important;
+      }
+      body.dark-mode input {
+        background-color: #374151 !important;
+        color: white !important;
+        border-color: #4b5563 !important;
+      }
+      body.dark-mode .text-gray-700,
+      body.dark-mode .text-gray-600 {
+        color: #d1d5db !important;
+      }
+      body.dark-mode .hover\:bg-gray-100:hover {
+        background-color: #374151 !important;
+      }
+    </style>
+  </head>
+  <body
+    class="gradient-bg min-h-screen transition-colors duration-300"
+    id="themeBody"
+  >
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+      <div
+        class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center"
+      >
+        <div class="flex items-center space-x-4">
+          <button
+            onclick="window.location.href = '/'"
+            class="p-2 rounded-full hover:bg-gray-100"
+          >
+            <i data-lucide="arrow-left"></i>
+          </button>
+          <span class="text-xl font-bold flex items-center gap-2"
+            ><i data-lucide="users" class="text-blue-600"></i> Bạn bè</span
+          >
+        </div>
+        <div class="flex-1 max-w-lg mx-4 relative">
+          <i
+            data-lucide="search"
+            class="absolute left-3 top-2.5 w-5 h-5 text-gray-400"
+          ></i>
+          <input
+            type="text"
+            id="mainSearchInput"
+            placeholder="Tìm bạn bè, số điện thoại..."
+            class="w-full pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent"
+          />
+        </div>
+      </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <div id="searchArea" class="hidden mb-8">
+        <h3 class="text-lg font-bold mb-4">Kết quả tìm kiếm</h3>
+        <div
+          id="mainSearchResults"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        ></div>
+        <button onclick="clearSearch()" class="mt-4 text-blue-600 underline">
+          Quay lại danh sách bạn bè
+        </button>
+      </div>
+
+      <div id="mainArea">
+        <div class="flex space-x-8 mb-6 border-b overflow-x-auto">
+          <button
+            onclick="switchTab('all')"
+            id="tabAll"
+            class="tab-button py-3 px-1 font-medium text-lg active whitespace-nowrap"
+          >
+            Tất cả bạn bè
+          </button>
+          <button
+            onclick="switchTab('requests')"
+            id="tabRequests"
+            class="tab-button py-3 px-1 font-medium text-lg text-gray-500 whitespace-nowrap relative"
+          >
+            Lời mời kết bạn
+            <span
+              id="badgeRequests"
+              class="bg-red-500 text-white text-xs rounded-full px-2 ml-1 hidden"
+              >0</span
+            >
+          </button>
+          <button
+            onclick="switchTab('find')"
+            id="tabFind"
+            class="tab-button py-3 px-1 font-medium text-lg text-gray-500 whitespace-nowrap"
+          >
+            Gợi ý kết bạn
+          </button>
+        </div>
+
+        <div id="contentAll">
+          <div
+            id="friendsList"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
+            <div class="col-span-full text-center py-10">
+              <div
+                class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="contentRequests" class="hidden space-y-6">
+          <div>
+            <h3 class="font-bold text-gray-700 mb-2">Lời mời nhận được</h3>
+            <div id="receivedList" class="space-y-3"></div>
+          </div>
+          <div>
+            <h3 class="font-bold text-gray-700 mb-2">Lời mời đã gửi</h3>
+            <div id="sentList" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <div id="contentFind" class="hidden">
+          <div
+            id="suggestedList"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="fixed top-4 right-4 z-50"></div>
+
+    <script>
+      lucide.createIcons();
+      let currentUser = null;
+      let socket = null;
+
+      function getAvatar(url) {
+        if (!url || url.includes("default"))
+          return "/static/uploads/avatars/default_avatar.png";
+        return `/static/uploads/avatars/${url.replace("avatars/", "").replace("static/", "").replace("uploads/", "")}`;
+      }
+
+      function showToast(msg, type = "info") {
+        const t = document.createElement("div");
+        t.className = `px-6 py-3 rounded-lg shadow-lg mb-2 text-white animate__animated animate__fadeInRight ${type === "error" ? "bg-red-500" : "bg-blue-500"}`;
+        t.innerText = msg;
+        document.getElementById("toast").appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+      }
+
+      async function init() {
+        try {
+          const res = await fetch("/auth/check-auth");
+          const data = await res.json();
+          if (!data.authenticated) return (window.location.href = "/login");
+          currentUser = data.user;
+          if (currentUser.theme === "dark")
+            document.body.classList.add("dark-mode");
+          initializeSocket();
+          loadFriends();
+          loadRequests();
+          loadSuggestions();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      function initializeSocket() {
+        socket = io();
+        socket.on("new_friend_request", () => {
+          showToast("Có lời mời kết bạn mới!");
+          loadRequests();
+        });
+        socket.on("friend_request_response", (data) => {
+          showToast(data.message, "success");
+          loadFriends();
+          loadRequests();
+        });
+      }
+
+      // --- PHẦN QUAN TRỌNG ĐÃ SỬA ---
+      function createUserCard(user, type) {
+        const div = document.createElement("div");
+        div.className =
+          "bg-white p-4 rounded-xl shadow flex items-center justify-between transition hover:-translate-y-1";
+        let actionBtn = "";
+
+        if (type === "friend" || user.friendship_status === "friends") {
+          // *** SỬA Ở ĐÂY: Thêm ?user=${user.id} vào đường dẫn ***
+          actionBtn = `
+            <button onclick="window.location.href='/chat?user=${user.id}'" class="bg-blue-100 text-blue-600 p-2 rounded-full hover:bg-blue-200">
+                <i data-lucide="message-circle" class="w-5 h-5"></i>
+            </button>`;
+        } else if (user.friendship_status === "request_sent") {
+          actionBtn = `<span class="text-yellow-600 text-sm bg-yellow-100 px-3 py-1 rounded-full">Đã gửi</span>`;
+        } else if (user.friendship_status === "request_received") {
+          actionBtn = `<button onclick="respondRequest(${user.id}, 'accept')" class="bg-green-600 text-white px-3 py-1 rounded-lg text-sm">Chấp nhận</button>`;
+        } else {
+          actionBtn = `
+            <button onclick="sendRequest(${user.id}, this)" class="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm flex items-center gap-1 hover:bg-blue-700">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Kết bạn
+            </button>`;
+        }
+
+        div.innerHTML = `
+            <div class="flex items-center gap-3">
+                <img src="${getAvatar(user.avatar_url)}" class="w-12 h-12 rounded-full object-cover border">
+                <div>
+                    <h4 class="font-bold text-gray-800">${user.name}</h4>
+                    <p class="text-xs text-gray-500">${user.phone_number}</p>
+                </div>
+            </div>
+            <div>${actionBtn}</div>
+        `;
+        return div;
+      }
+
+      async function loadFriends() {
+        const res = await fetch("/friend/list");
+        const data = await res.json();
+        const list = document.getElementById("friendsList");
+        list.innerHTML = "";
+        if (data.friends && data.friends.length) {
+          data.friends.forEach((f) =>
+            list.appendChild(createUserCard(f, "friend")),
+          );
+        } else {
+          list.innerHTML =
+            '<p class="text-gray-500 col-span-full text-center">Chưa có bạn bè.</p>';
+        }
+        lucide.createIcons();
+      }
+
+      async function loadRequests() {
+        const res = await fetch("/friend/requests");
+        const data = await res.json();
+        const recvList = document.getElementById("receivedList");
+        recvList.innerHTML = "";
+        if (data.received.length) {
+          document.getElementById("badgeRequests").innerText =
+            data.received.length;
+          document.getElementById("badgeRequests").classList.remove("hidden");
+          data.received.forEach((req) => {
+            const el = createUserCard(req.sender, "request_received");
+            el.querySelector("div:last-child").innerHTML = `
+                <div class="flex gap-2">
+                    <button onclick="respondRequest(${req.id}, 'accept')" class="bg-green-600 text-white px-3 py-1 rounded text-sm">Đồng ý</button>
+                    <button onclick="respondRequest(${req.id}, 'reject')" class="bg-gray-200 text-gray-700 px-3 py-1 rounded text-sm">Xóa</button>
+                </div>`;
+            recvList.appendChild(el);
+          });
+        } else {
+          document.getElementById("badgeRequests").classList.add("hidden");
+          recvList.innerHTML =
+            '<p class="text-gray-400 text-sm">Không có lời mời nào.</p>';
+        }
+
+        const sentList = document.getElementById("sentList");
+        sentList.innerHTML = "";
+        if (data.sent.length) {
+          data.sent.forEach((req) => {
+            const el = createUserCard(req.receiver, "request_sent");
+            el.querySelector("div:last-child").innerHTML =
+              `<button onclick="cancelRequest(${req.id})" class="text-red-500 text-sm border border-red-200 px-3 py-1 rounded hover:bg-red-50">Hủy</button>`;
+            sentList.appendChild(el);
+          });
+        } else {
+          sentList.innerHTML =
+            '<p class="text-gray-400 text-sm">Chưa gửi lời mời nào.</p>';
+        }
+        lucide.createIcons();
+      }
+
+      async function loadSuggestions() {
+        const res = await fetch("/user/search?q=&limit=6");
+        const data = await res.json();
+        const list = document.getElementById("suggestedList");
+        list.innerHTML = "";
+        if (data.users)
+          data.users.forEach((u) =>
+            list.appendChild(createUserCard(u, "stranger")),
+          );
+        lucide.createIcons();
+      }
+
+      async function sendRequest(receiverId, btn) {
+        btn.innerText = "...";
+        btn.disabled = true;
+        try {
+          const res = await fetch("/friend/send-request", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ receiver_id: receiverId }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast("Đã gửi lời mời!", "success");
+            btn.parentElement.innerHTML = `<span class="text-yellow-600 text-sm bg-yellow-100 px-3 py-1 rounded-full">Đã gửi</span>`;
+            loadRequests();
+          } else {
+            showToast(data.message, "error");
+            btn.innerText = "Kết bạn";
+            btn.disabled = false;
+          }
+        } catch (e) {
+          showToast("Lỗi server", "error");
+        }
+      }
+
+      async function respondRequest(reqId, action) {
+        await fetch(`/friend/requests/${reqId}/respond`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action }),
+        });
+        loadRequests();
+        loadFriends();
+        showToast(action === "accept" ? "Đã kết bạn!" : "Đã từ chối");
+      }
+
+      async function cancelRequest(reqId) {
+        await fetch(`/friend/requests/${reqId}/cancel`, { method: "DELETE" });
+        loadRequests();
+        showToast("Đã hủy lời mời");
+      }
+
+      // Search Logic
+      let searchTimeout;
+      document
+        .getElementById("mainSearchInput")
+        .addEventListener("input", (e) => {
+          clearTimeout(searchTimeout);
+          const val = e.target.value.trim();
+          if (!val) {
+            clearSearch();
+            return;
+          }
+          searchTimeout = setTimeout(async () => {
+            const res = await fetch(`/user/search?q=${val}`);
+            const data = await res.json();
+            document.getElementById("mainArea").classList.add("hidden");
+            document.getElementById("searchArea").classList.remove("hidden");
+            const list = document.getElementById("mainSearchResults");
+            list.innerHTML = "";
+            if (data.users && data.users.length) {
+              data.users.forEach((u) =>
+                list.appendChild(createUserCard(u, "search_result")),
+              );
+            } else {
+              list.innerHTML =
+                '<p class="col-span-full text-center text-gray-500">Không tìm thấy ai.</p>';
+            }
+            lucide.createIcons();
+          }, 300);
+        });
+
+      function clearSearch() {
+        document.getElementById("mainSearchInput").value = "";
+        document.getElementById("searchArea").classList.add("hidden");
+        document.getElementById("mainArea").classList.remove("hidden");
+      }
+
+      function switchTab(tab) {
+        ["all", "requests", "find"].forEach((t) => {
+          document
+            .getElementById(`content${t.charAt(0).toUpperCase() + t.slice(1)}`)
+            .classList.add("hidden");
+          document.getElementById(
+            `tab${t.charAt(0).toUpperCase() + t.slice(1)}`,
+          ).className =
+            "tab-button py-3 px-1 font-medium text-lg text-gray-500 whitespace-nowrap relative";
+        });
+        document
+          .getElementById(
+            `content${tab.charAt(0).toUpperCase() + tab.slice(1)}`,
+          )
+          .classList.remove("hidden");
+        document.getElementById(
+          `tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`,
+        ).className =
+          "tab-button py-3 px-1 font-medium text-lg active whitespace-nowrap relative";
+      }
+
+      init();
+    </script>
+  </body>
+</html>

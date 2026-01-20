@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zalo Clone - Trang chủ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+      :root {
+        --accent-color: #3b82f6;
+      }
+
+      /* --- DARK MODE FIX (GIỮ NGUYÊN VÌ BẠN BẢO ĐÃ OK) --- */
+      body.dark-mode {
+        background-color: #111827 !important;
+        color: #f3f4f6 !important;
+      }
+      body.dark-mode .bg-white {
+        background-color: #1f2937 !important;
+        border-color: #374151 !important;
+        color: #f3f4f6 !important;
+      }
+      body.dark-mode input,
+      body.dark-mode textarea {
+        background-color: #374151 !important;
+        color: white !important;
+        border-color: #4b5563 !important;
+      }
+      body.dark-mode .text-gray-500,
+      body.dark-mode .text-gray-600,
+      body.dark-mode .text-gray-800 {
+        color: #d1d5db !important;
+      }
+      body.dark-mode .bg-gray-100,
+      body.dark-mode .hover\:bg-gray-100:hover {
+        background-color: #374151 !important;
+      }
+
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+        }
+        to {
+          transform: translateX(0);
+        }
+      }
+
+      /* Fix hiển thị ảnh */
+      .img-avatar {
+        object-fit: cover;
+      }
+      .img-post {
+        object-fit: cover;
+        width: 100%;
+        height: 300px;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-50 text-gray-800 transition-colors duration-300"
+    id="themeBody"
+  >
+    <nav class="bg-white shadow sticky top-0 z-50">
+      <div
+        class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center"
+      >
+        <div
+          class="flex items-center gap-3 cursor-pointer"
+          onclick="window.location.href = '/'"
+        >
+          <div
+            class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center"
+          >
+            <i data-lucide="message-circle" class="w-6 h-6 text-blue-600"></i>
+          </div>
+          <span class="text-xl font-bold hidden md:block">Zalo Clone</span>
+        </div>
+
+        <div class="flex-1 max-w-lg mx-4">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="Tìm kiếm..."
+            class="w-full px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 bg-transparent"
+          />
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="themeToggle" class="p-2 hover:bg-gray-100 rounded-full">
+            <i data-lucide="sun" class="w-6 h-6"></i>
+          </button>
+          <a href="/chat" class="p-2 hover:bg-gray-100 rounded-full"
+            ><i data-lucide="message-square" class="w-6 h-6"></i
+          ></a>
+          <a href="/friends" class="p-2 hover:bg-gray-100 rounded-full"
+            ><i data-lucide="users" class="w-6 h-6"></i
+          ></a>
+
+          <div class="relative">
+            <button
+              id="menuBtn"
+              class="flex items-center gap-2 p-1 hover:bg-gray-100 rounded-lg"
+            >
+              <img
+                id="navAvatar"
+                src=""
+                class="w-8 h-8 rounded-full img-avatar border"
+              />
+            </button>
+            <div
+              id="userDropdown"
+              class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border hidden z-50"
+            >
+              <div class="px-4 py-3 border-b font-bold truncate" id="navName">
+                ...
+              </div>
+              <a
+                href="/profile"
+                class="block px-4 py-3 hover:bg-gray-100 flex gap-2"
+                ><i data-lucide="user" class="w-4"></i> Hồ sơ</a
+              >
+              <button
+                id="logoutBtn"
+                class="w-full text-left px-4 py-3 hover:bg-gray-100 text-red-600 flex gap-2"
+              >
+                <i data-lucide="log-out" class="w-4"></i> Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="max-w-2xl mx-auto py-6 px-4">
+      <div class="bg-white p-4 rounded-xl shadow mb-6">
+        <div class="flex gap-3">
+          <img
+            id="postInputAvatar"
+            src=""
+            class="w-10 h-10 rounded-full img-avatar"
+          />
+          <textarea
+            id="postContent"
+            class="flex-1 p-2 border-none focus:ring-0 resize-none bg-transparent"
+            placeholder="Bạn đang nghĩ gì?"
+            rows="2"
+          ></textarea>
+        </div>
+        <div id="imagePreview" class="grid grid-cols-3 gap-2 mt-2 hidden"></div>
+        <div class="flex justify-between mt-3 pt-3 border-t border-gray-100">
+          <button
+            onclick="document.getElementById('fileInput').click()"
+            class="text-gray-500 hover:text-blue-600 flex items-center gap-2"
+          >
+            <i data-lucide="image"></i> Ảnh
+          </button>
+          <button
+            id="submitPost"
+            class="bg-blue-600 text-white px-6 py-1.5 rounded-full font-medium shadow hover:opacity-90"
+          >
+            Đăng
+          </button>
+        </div>
+        <input type="file" id="fileInput" multiple hidden accept="image/*" />
+      </div>
+
+      <div id="feed" class="space-y-6 pb-20">
+        <div class="text-center py-10 text-gray-500">Đang tải bài viết...</div>
+      </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script>
+      lucide.createIcons();
+      let currentUser = null;
+      let socket = null;
+      let postFiles = [];
+
+      // --- HÀM XỬ LÝ ẢNH (FIX LỖI MẤT AVATAR) ---
+      function getAvatar(url) {
+        // Nếu null hoặc undefined -> trả về default
+        if (!url) return "/static/uploads/avatars/default_avatar.png";
+        // Nếu là URL online -> trả về nguyên gốc
+        if (url.startsWith("http")) return url;
+        // Xử lý đường dẫn thừa để tránh lỗi 404 (Ví dụ: avatars/avatars/abc.jpg)
+        let clean = url
+          .replace("/static/uploads/avatars/", "")
+          .replace("avatars/", "");
+        return `/static/uploads/avatars/${clean}`;
+      }
+
+      function getPostImg(url) {
+        if (!url) return "";
+        let clean = url
+          .replace("/static/uploads/posts/", "")
+          .replace("posts/", "");
+        return `/static/uploads/posts/${clean}`;
+      }
+
+      function showToast(msg, type = "info") {
+        const t = document.createElement("div");
+        t.className = `toast px-6 py-3 rounded-lg shadow-lg text-white ${type === "error" ? "bg-red-500" : "bg-blue-500"}`;
+        t.innerText = msg;
+        document.getElementById("toastContainer").appendChild(t);
+        setTimeout(() => t.remove(), 3000);
+      }
+
+      // --- INIT ---
+      async function init() {
+        try {
+          const res = await fetch("/auth/check-auth");
+          const data = await res.json();
+          if (!data.authenticated) return (window.location.href = "/login");
+
+          currentUser = data.user;
+          setupUI();
+          setupSocket();
+          loadPosts();
+        } catch (e) {
+          console.error("Init Error:", e);
+        }
+      }
+
+      function setupUI() {
+        // Cập nhật thông tin User
+        document.getElementById("navName").innerText = currentUser.name;
+        const ava = getAvatar(currentUser.avatar_url);
+        document.getElementById("navAvatar").src = ava;
+        document.getElementById("postInputAvatar").src = ava;
+
+        // Dark Mode
+        if (currentUser.theme === "dark") {
+          document.body.classList.add("dark-mode");
+          document
+            .querySelector("#themeToggle i")
+            .setAttribute("data-lucide", "moon");
+        }
+        if (currentUser.accent_color) {
+          document.documentElement.style.setProperty(
+            "--accent-color",
+            currentUser.accent_color,
+          );
+        }
+        lucide.createIcons();
+      }
+
+      function setupSocket() {
+        socket = io();
+        // Sự kiện Realtime
+        socket.on("post_liked", (data) => {
+          const el = document.querySelector(`div[data-id="${data.post_id}"]`);
+          if (el) {
+            el.querySelector(".like-count").innerText = data.like_count;
+            if (data.user_id === currentUser.id) {
+              const btn = el.querySelector(".like-btn");
+              const icon = btn.querySelector("svg");
+              if (data.action === "liked") {
+                btn.classList.add("text-red-500");
+                icon.classList.add("fill-red-500");
+              } else {
+                btn.classList.remove("text-red-500");
+                icon.classList.remove("fill-red-500");
+              }
+            }
+          }
+        });
+
+        socket.on("new_comment", (data) => {
+          const el = document.querySelector(`div[data-id="${data.post_id}"]`);
+          if (el) {
+            el.querySelector(".comment-count").innerText = data.comment_count;
+            // Hiển thị ngay comment mới
+            const list = el.querySelector(".comments-list");
+            if (list && !list.classList.contains("hidden")) {
+              list.insertAdjacentHTML(
+                "afterbegin",
+                createCommentHTML(data.comment),
+              );
+            }
+          }
+        });
+      }
+
+      // --- POSTS ---
+      async function loadPosts() {
+        try {
+          const res = await fetch("/post/all");
+          const data = await res.json();
+          const feed = document.getElementById("feed");
+          feed.innerHTML = "";
+
+          if (data.posts && data.posts.length > 0) {
+            data.posts.forEach((p) => renderPost(p, feed));
+          } else {
+            feed.innerHTML = `<div class="text-center text-gray-500 py-10">Chưa có bài viết nào.</div>`;
+          }
+        } catch (e) {
+          document.getElementById("feed").innerHTML =
+            '<div class="text-center text-red-500">Lỗi tải bài viết</div>';
+        }
+      }
+
+      function renderPost(post, container, prepend = false) {
+        const div = document.createElement("div");
+        div.className = "bg-white p-4 rounded-xl shadow mb-6";
+        div.dataset.id = post.id;
+
+        // Xử lý ảnh bài viết
+        let imgsHTML = "";
+        if (post.images && post.images.length > 0) {
+          imgsHTML = `<div class="grid grid-cols-${Math.min(post.images.length, 3)} gap-2 mt-3">
+                    ${post.images.map((i) => `<img src="${getPostImg(i)}" class="img-post rounded-lg cursor-pointer">`).join("")}
+                </div>`;
+        }
+
+        const isLiked = post.is_liked;
+
+        div.innerHTML = `
+                <div class="flex items-center gap-3 mb-3">
+                    <img src="${getAvatar(post.author.avatar_url)}" class="w-10 h-10 rounded-full img-avatar">
+                    <div>
+                        <h4 class="font-bold text-gray-800">${post.author.name}</h4>
+                        <p class="text-xs text-gray-500">${new Date(post.created_at).toLocaleString("vi-VN")}</p>
+                    </div>
+                </div>
+                <p class="text-gray-800 whitespace-pre-wrap text-base">${post.content || ""}</p>
+                ${imgsHTML}
+                
+                <div class="flex gap-6 mt-4 pt-3 border-t border-gray-100 text-gray-500 text-sm">
+                    <button class="like-btn flex items-center gap-1 hover:bg-gray-50 px-3 py-1 rounded-full transition-colors ${isLiked ? "text-red-500" : ""}" onclick="toggleLike(${post.id})">
+                        <i data-lucide="heart" class="w-5 h-5 ${isLiked ? "fill-red-500" : ""}"></i> 
+                        <span class="font-medium"><span class="like-count">${post.like_count}</span> Thích</span>
+                    </button>
+                    <button onclick="toggleComments(${post.id})" class="flex items-center gap-2 hover:bg-gray-50 px-3 py-1 rounded-full transition-colors">
+                        <i data-lucide="message-circle" class="w-5 h-5"></i> 
+                        <span class="font-medium"><span class="comment-count">${post.comment_count}</span> Bình luận</span>
+                    </button>
+                </div>
+
+                <div class="comment-section mt-3 pt-3 border-t border-gray-100 bg-gray-50 rounded-lg p-3 hidden">
+                    <div class="comments-list space-y-3 mb-3 max-h-60 overflow-y-auto"></div>
+                    <div class="flex items-center gap-2">
+                        <img src="${getAvatar(currentUser.avatar_url)}" class="w-8 h-8 rounded-full img-avatar">
+                        <div class="flex-1 relative">
+                            <input type="text" class="comment-input w-full bg-white border rounded-full px-4 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                   placeholder="Viết bình luận..." onkeypress="if(event.key==='Enter') submitComment(${post.id})">
+                            <button onclick="submitComment(${post.id})" class="absolute right-2 top-1.5 text-blue-500">
+                                <i data-lucide="send" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+        if (prepend) container.prepend(div);
+        else container.appendChild(div);
+        lucide.createIcons();
+      }
+
+      // --- COMMENT LOGIC ---
+      async function toggleComments(pid) {
+        const el = document.querySelector(
+          `div[data-id="${pid}"] .comment-section`,
+        );
+        const list = el.querySelector(".comments-list");
+
+        if (el.classList.contains("hidden")) {
+          el.classList.remove("hidden");
+          // Nếu chưa có comment nào thì load
+          if (list.children.length === 0) {
+            try {
+              const res = await fetch(`/post/${pid}/comments`);
+              const data = await res.json();
+              list.innerHTML = "";
+              if (data.comments && data.comments.length) {
+                data.comments.forEach((c) =>
+                  list.insertAdjacentHTML("beforeend", createCommentHTML(c)),
+                );
+              } else {
+                list.innerHTML =
+                  '<p class="text-xs text-gray-400 italic pl-2">Chưa có bình luận nào.</p>';
+              }
+            } catch (e) {
+              list.innerHTML = "Lỗi tải comment";
+            }
+          }
+        } else {
+          el.classList.add("hidden");
+        }
+      }
+
+      function createCommentHTML(c) {
+        return `
+                <div class="flex gap-2 mb-2 animate-fade">
+                    <img src="${getAvatar(c.user.avatar_url)}" class="w-8 h-8 rounded-full img-avatar flex-shrink-0">
+                    <div class="bg-white border px-3 py-2 rounded-2xl shadow-sm max-w-[85%]">
+                        <span class="font-bold text-xs block text-blue-600">${c.user.name}</span>
+                        <span class="text-sm text-gray-800 break-words">${c.content}</span>
+                    </div>
+                </div>
+            `;
+      }
+
+      function submitComment(pid) {
+        const input = document.querySelector(
+          `div[data-id="${pid}"] .comment-input`,
+        );
+        const val = input.value.trim();
+        if (!val) return;
+        socket.emit("comment_post", { post_id: pid, content: val });
+        input.value = "";
+      }
+
+      function toggleLike(pid) {
+        socket.emit("like_post", { post_id: pid });
+      }
+
+      // --- MENU & THEME ---
+      const menuBtn = document.getElementById("menuBtn");
+      const dropdown = document.getElementById("userDropdown");
+
+      menuBtn.onclick = (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle("hidden");
+      };
+      document.onclick = () => dropdown.classList.add("hidden");
+
+      document.getElementById("logoutBtn").onclick = () => {
+        fetch("/auth/logout", { method: "POST" }).then(
+          () => (location.href = "/login"),
+        );
+      };
+
+      document.getElementById("themeToggle").onclick = async () => {
+        const isDark = document.body.classList.toggle("dark-mode");
+        const icon = document.querySelector("#themeToggle i");
+        icon.setAttribute("data-lucide", isDark ? "moon" : "sun");
+        lucide.createIcons();
+        await fetch("/user/update-theme", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ theme: isDark ? "dark" : "light" }),
+        });
+      };
+
+      // --- CREATE POST ---
+      const fileInput = document.getElementById("fileInput");
+      fileInput.onchange = (e) => {
+        postFiles = Array.from(e.target.files);
+        const pv = document.getElementById("imagePreview");
+        pv.innerHTML = postFiles
+          .map(
+            (f) =>
+              `<img src="${URL.createObjectURL(f)}" class="h-24 w-full object-cover rounded-lg border">`,
+          )
+          .join("");
+        pv.classList.remove("hidden");
+      };
+
+      document.getElementById("submitPost").onclick = async () => {
+        const content = document.getElementById("postContent").value.trim();
+        if (!content && !postFiles.length)
+          return showToast("Nhập nội dung!", "error");
+
+        const fd = new FormData();
+        fd.append("content", content);
+        postFiles.forEach((f, i) => fd.append(`image_${i}`, f));
+
+        const btn = document.getElementById("submitPost");
+        btn.disabled = true;
+        btn.innerText = "Processing...";
+
+        try {
+          const res = await fetch("/post/create", { method: "POST", body: fd });
+          const data = await res.json();
+          if (data.success) {
+            renderPost(data.post, document.getElementById("feed"), true);
+            document.getElementById("postContent").value = "";
+            document.getElementById("imagePreview").innerHTML = "";
+            document.getElementById("imagePreview").classList.add("hidden");
+            postFiles = [];
+            showToast("Đăng thành công");
+          } else {
+            showToast(data.message || "Lỗi", "error");
+          }
+        } catch (e) {
+          showToast("Lỗi server", "error");
+        }
+        btn.disabled = false;
+        btn.innerText = "Đăng";
+      };
+
+      init();
+    </script>
+  </body>
+</html>
