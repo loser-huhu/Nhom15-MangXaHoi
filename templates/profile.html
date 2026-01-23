@@ -331,7 +331,7 @@
         }
       };
 
-      // --- POSTS LOGIC (Fix lỗi trống bài) ---
+      // --- POSTS LOGIC (Fix lỗi trống bài) ----
       async function loadMyPosts() {
         // Gọi API với đúng user_id của người đang đăng nhập
         const res = await fetch(`/post/all?user_id=${currentUser.id}`);
