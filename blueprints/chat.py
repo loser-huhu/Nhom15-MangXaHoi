@@ -13,7 +13,10 @@ chat_bp = Blueprint('chat', __name__)
 @login_required
 def get_conversations():
     try:
+         # Lấy tất cả hội thoại của user hiện tại
         conversations = current_user.conversations
+        
+        # Sắp xếp theo thời gian cập nhật mới nhất
         conversations.sort(key=lambda x: x.updated_at, reverse=True)
         
         results = []
