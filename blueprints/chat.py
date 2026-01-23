@@ -13,7 +13,10 @@ chat_bp = Blueprint('chat', __name__)
 @login_required
 def get_conversations():
     try:
+         # Lấy tất cả hội thoại của user hiện tại
         conversations = current_user.conversations
+        
+        # Sắp xếp theo thời gian cập nhật mới nhất
         conversations.sort(key=lambda x: x.updated_at, reverse=True)
         
         results = []
@@ -45,6 +48,8 @@ def get_conversations():
 # 2. LẤY CHI TIẾT CHAT BẰNG ID HỘI THOẠI
 @chat_bp.route('/detail/<int:conversation_id>', methods=['GET'])
 @login_required
+
+# Kiểm tra hội thoại tồn tại và người dùng có quyền truy cập
 def get_chat_detail_by_id(conversation_id):
     try:
         conv = Conversation.query.get(conversation_id)
