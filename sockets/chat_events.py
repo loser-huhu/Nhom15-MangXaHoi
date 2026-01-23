@@ -4,6 +4,13 @@ from flask_login import current_user
 from models.user import User
 from models.conversation import Conversation, Message
 from datetime import datetime
+import time
+import hashlib
+
+# Cache để tránh xử lý tin nhắn trùng lặp - CẢI THIỆN
+message_cache = {}
+CACHE_TIMEOUT = 2  # giây - GIẢM XUỐNG
+message_id_tracker = set()  # Theo dõi ID tin nhắn đã xử lý
 
 @socketio.on('connect')
 def handle_connect():
@@ -34,6 +41,28 @@ def handle_send_message(data):
     if not conversation or current_user not in conversation.users:
         return
     
+    # Tạo message hash để kiểm tra trùng lặp - CẢI THIỆN
+    current_timestamp = int(time.time() * 1000)  # milliseconds
+    message_hash = hashlib.md5(
+        f"{current_user.id}_{conversation_id}_{content}_{file_url}_{current_timestamp}".encode()
+    ).hexdigest()
+    
+    # Kiểm tra cache để tránh xử lý trùng lặp
+    current_time = time.time()
+    
+    # Dọn dẹp cache cũ
+    expired_keys = [k for k, v in message_cache.items() if current_time - v > CACHE_TIMEOUT]
+    for key in expired_keys:
+        del message_cache[key]
+    
+    # Nếu message_hash đã tồn tại trong cache, bỏ qua
+    if message_hash in message_cache:
+        print(f"Bỏ qua tin nhắn trùng lặp (cache): {message_hash}")
+        return
+    
+    # Thêm vào cache
+    message_cache[message_hash] = current_time
+    
     # Tạo tin nhắn mới
     message = Message(
         conversation_id=conversation_id,
@@ -49,6 +78,9 @@ def handle_send_message(data):
     db.session.add(message)
     conversation.updated_at = datetime.utcnow()
     db.session.commit()
+    
+    # Thêm message ID vào tracker để tránh nhận trùng từ socket khác
+    message_id_tracker.add(message.id)
     
     # Chuẩn bị data để gửi
     message_data = {
@@ -80,6 +112,17 @@ def handle_send_message(data):
                 'message_preview': content[:50] if content else '[File]',
                 'sender_name': current_user.name
             }, room=f"user_{user.id}")
+
+@socketio.on('receive_message_from_client')
+def handle_receive_message_from_client(data):
+    """Xử lý khi client gửi tin nhắn đã nhận - để tránh trùng lặp"""
+    if not current_user.is_authenticated:
+        return
+    
+    message_id = data.get('message_id')
+    if message_id and message_id in message_id_tracker:
+        # Tin nhắn đã được xử lý, bỏ qua
+        return
 
 @socketio.on('recall_message')
 def handle_recall_message(data):
@@ -215,12 +258,31 @@ def handle_reaction_message(data):
         'conversation_id': message.conversation_id
     }, room=str(message.conversation_id))
 
+@socketio.on('conversation_deleted_for_user')
+def handle_conversation_deleted_for_user(data):
+    """Xử lý khi một user xóa cuộc hội thoại (chỉ với user đó)"""
+    if not current_user.is_authenticated:
+        return
+    
+    conversation_id = data.get('conversation_id')
+    user_id = data.get('user_id')
+    
+    # CHỈ gửi thông báo cho user đã xóa
+    if user_id == current_user.id:
+        emit('conversation_deleted_for_user', {
+            'conversation_id': conversation_id,
+            'user_id': user_id,
+            'timestamp': datetime.utcnow().isoformat()
+        }, room=f"user_{user_id}")
+
 def register_chat_events(socketio_instance):
     """Đăng ký các event handler cho chat"""
     socketio_instance.on_event('connect', handle_connect)
     socketio_instance.on_event('join_conversation', handle_join_conversation)
     socketio_instance.on_event('send_message', handle_send_message)
+    socketio_instance.on_event('receive_message_from_client', handle_receive_message_from_client)
     socketio_instance.on_event('recall_message', handle_recall_message)
     socketio_instance.on_event('edit_message', handle_edit_message)
     socketio_instance.on_event('pin_message', handle_pin_message)
     socketio_instance.on_event('reaction_message', handle_reaction_message)
+    socketio_instance.on_event('conversation_deleted_for_user', handle_conversation_deleted_for_user)

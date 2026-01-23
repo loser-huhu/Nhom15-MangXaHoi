@@ -19,9 +19,23 @@ def get_conversations():
         results = []
         for conv in conversations:
             last_msg = Message.query.filter_by(conversation_id=conv.id).order_by(Message.created_at.desc()).first()
+            
+            # Lấy thông tin conversation với fallback cho trường hợp không tìm thấy name
+            conv_data = conv.to_dict(current_user.id)
+            
+            # Đảm bảo luôn có name
+            if 'name' not in conv_data or not conv_data['name']:
+                if conv.is_group:
+                    conv_data['name'] = conv.title or 'Nhóm chat'
+                else:
+                    # Tìm người còn lại trong cuộc trò chuyện
+                    other_user = next((u for u in conv.users if u.id != current_user.id), None)
+                    conv_data['name'] = other_user.name if other_user else 'Người dùng'
+                    conv_data['avatar'] = other_user.avatar_url if other_user else None
+            
             results.append({
                 'id': conv.id,
-                **conv.to_dict(current_user.id),
+                **conv_data,
                 'last_message': last_msg.to_dict() if last_msg else None
             })
         return jsonify({'success': True, 'conversations': results})
@@ -58,15 +72,28 @@ def get_chat_detail_by_id(conversation_id):
             msg_dict['reactions'] = reaction_summary
             messages_data.append(msg_dict)
         
-        conv_dict = {
+        # Lấy thông tin conversation với fallback
+        conv_dict = conv.to_dict(current_user.id)
+        
+        # Đảm bảo luôn có name
+        if 'name' not in conv_dict or not conv_dict['name']:
+            if conv.is_group:
+                conv_dict['name'] = conv.title or 'Nhóm chat'
+            else:
+                other_user = next((u for u in conv.users if u.id != current_user.id), None)
+                conv_dict['name'] = other_user.name if other_user else 'Người dùng'
+                conv_dict['avatar'] = other_user.avatar_url if other_user else None
+        
+        result = {
             'id': conv.id,
-            **conv.to_dict(current_user.id),
+            **conv_dict,
             'messages': messages_data,
-            'users': [u.to_dict() for u in conv.users]
+            'users': [u.to_dict() for u in conv.users],
+            'is_group': conv.is_group
         }
         
         if settings:
-            conv_dict['settings'] = {
+            result['settings'] = {
                 'nickname': settings.nickname,
                 'theme': settings.theme,
                 'background_image': settings.background_image
@@ -74,7 +101,7 @@ def get_chat_detail_by_id(conversation_id):
         
         return jsonify({
             'success': True,
-            'conversation': conv_dict
+            'conversation': result
         })
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -92,6 +119,9 @@ def find_or_create_chat(target_user_id):
         if not conv:
             conv = Conversation(is_group=False, updated_at=datetime.utcnow())
             target = User.query.get(target_user_id)
+            if not target:
+                return jsonify({'success': False, 'message': 'Người dùng không tồn tại'}), 404
+                
             conv.users.append(current_user)
             conv.users.append(target)
             db.session.add(conv)
@@ -99,6 +129,7 @@ def find_or_create_chat(target_user_id):
             
         return jsonify({'success': True, 'conversation_id': conv.id})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 # 4. TẠO NHÓM
@@ -203,6 +234,16 @@ def leave_group():
                 group.admin_id = group.users[0].id
             
             db.session.commit()
+            
+            # Thông báo cho các thành viên còn lại
+            for user in group.users:
+                socketio.emit('conversation_updated', {
+                    'conversation_id': group_id,
+                    'action': 'member_left',
+                    'user_id': current_user.id,
+                    'user_name': current_user.name
+                }, room=f"user_{user.id}")
+            
             return jsonify({'success': True})
         
         return jsonify({'success': False, 'message': 'Bạn không ở trong nhóm này'}), 400
@@ -210,24 +251,43 @@ def leave_group():
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# 8. XÓA HỘI THOẠI
-@chat_bp.route('/conversation/<int:conv_id>', methods=['DELETE'])
+@chat_bp.route('/conversation/<int:conv_id>/clear-history', methods=['POST'])
 @login_required
-def delete_conversation(conv_id):
+def clear_conversation_history(conv_id):
     try:
         conv = Conversation.query.get(conv_id)
         if not conv:
-            return jsonify({'success': False}), 404
+            return jsonify({'success': False, 'message': 'Không tìm thấy cuộc trò chuyện'}), 404
             
-        if current_user in conv.users:
-            conv.users.remove(current_user)
-            db.session.commit()
-            
-        return jsonify({'success': True})
+        if current_user not in conv.users:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền'}), 403
+        
+        # THỰC TẾ: Cần tạo bảng user_deleted_messages để lưu tin nhắn đã xóa của từng user
+        # Tạm thời: Xóa tin nhắn trong database (ảnh hưởng cả hai)
+        # TODO: Thay bằng soft delete cho từng user
+        
+        # Tạo bảng nếu chưa có
+        # CREATE TABLE user_deleted_messages (
+        #     id INTEGER PRIMARY KEY AUTOINCREMENT,
+        #     user_id INTEGER NOT NULL,
+        #     message_id INTEGER NOT NULL,
+        #     deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        #     FOREIGN KEY (user_id) REFERENCES users(id),
+        #     FOREIGN KEY (message_id) REFERENCES messages(id)
+        # );
+        
+        # Hiện tại: Xóa tất cả tin nhắn
+        messages = Message.query.filter_by(conversation_id=conv_id).all()
+        for msg in messages:
+            db.session.delete(msg)
+        
+        conv.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Đã xóa lịch sử trò chuyện'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
-
 # 9. THU HỒI TIN NHẮN
 @chat_bp.route('/message/<int:message_id>/recall', methods=['POST'])
 @login_required
@@ -405,6 +465,14 @@ def set_background_image(conversation_id):
         if file.filename == '':
             return jsonify({'success': False, 'message': 'Chưa chọn file'}), 400
             
+        # Kiểm tra kích thước file (tối đa 5MB)
+        file.seek(0, 2)  # Di chuyển đến cuối file
+        file_size = file.tell()
+        file.seek(0)  # Quay lại đầu file
+        
+        if file_size > 5 * 1024 * 1024:  # 5MB
+            return jsonify({'success': False, 'message': 'File quá lớn (tối đa 5MB)'}), 400
+            
         # Kiểm tra định dạng file
         allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
         filename = file.filename.lower()
@@ -432,6 +500,15 @@ def set_background_image(conversation_id):
             )
             db.session.add(settings)
         else:
+            # Xóa ảnh cũ nếu có
+            if settings.background_image:
+                try:
+                    old_file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'backgrounds', settings.background_image)
+                    if os.path.exists(old_file_path):
+                        os.remove(old_file_path)
+                except:
+                    pass
+                    
             settings.background_image = bg_filename
             
         db.session.commit()
@@ -442,7 +519,42 @@ def set_background_image(conversation_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# 15. REACTION TIN NHẮN
+# 15. XÓA ẢNH NỀN CHAT
+@chat_bp.route('/conversation/<int:conversation_id>/remove-background', methods=['POST'])
+@login_required
+def remove_background_image(conversation_id):
+    try:
+        from flask import current_app
+        
+        conv = Conversation.query.get_or_404(conversation_id)
+        
+        if current_user not in conv.users:
+            return jsonify({'success': False, 'message': 'Bạn không có quyền'}), 403
+            
+        settings = ConversationSettings.query.filter_by(
+            user_id=current_user.id,
+            conversation_id=conversation_id
+        ).first()
+        
+        if settings and settings.background_image:
+            # Xóa file vật lý
+            try:
+                file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'backgrounds', settings.background_image)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                print(f"Lỗi khi xóa file ảnh nền: {e}")
+            
+            # Xóa trong database
+            settings.background_image = None
+            db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# 16. REACTION TIN NHẮN
 @chat_bp.route('/message/<int:message_id>/reaction', methods=['POST'])
 @login_required
 def add_reaction(message_id):
@@ -517,7 +629,7 @@ def add_reaction(message_id):
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# 16. XEM HỒ SƠ
+# 17. XEM HỒ SƠ
 @chat_bp.route('/user-profile/<int:user_id>', methods=['GET'])
 @login_required
 def get_user_profile(user_id):

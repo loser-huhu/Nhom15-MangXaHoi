@@ -107,9 +107,10 @@
         background-color: rgba(59, 130, 246, 0.2); /* primary-900/20 */
       }
 
-      /* Chat background with proper z-index */
+      /* Chat background with proper z-index - FIXED */
       .chat-background {
         position: relative;
+        overflow: hidden;
       }
 
       .chat-background-image {
@@ -121,15 +122,21 @@
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
+        background-attachment: scroll; /* Changed from fixed to scroll */
         z-index: 0;
+        opacity: 0.6; /* Giảm độ mờ để dễ đọc tin nhắn */
+        pointer-events: none; /* Không tương tác được với background */
       }
 
       .chat-messages-container {
         position: relative;
         z-index: 10;
+        background-color: transparent; /* Trong suốt để thấy background */
+        height: calc(100% - 64px - 56px); /* Trừ header và input */
+        overflow-y: auto;
       }
 
-      /* Message container */
+      /* Message container với backdrop blur */
       .message-content-container {
         backdrop-filter: blur(2px);
       }
@@ -141,53 +148,174 @@
 
       /* Theme styles for chat messages */
       .theme-blue .message-content:not(.mine .message-content) {
-        background-color: #e0f2fe !important; /* blue-100 */
+        background-color: rgba(
+          224,
+          242,
+          254,
+          0.9
+        ) !important; /* blue-100 với opacity */
         color: #0c4a6e !important; /* blue-900 */
       }
 
       .theme-blue .mine .message-content {
-        background: linear-gradient(to right, #3b82f6, #2563eb) !important;
+        background: linear-gradient(
+          to right,
+          rgba(59, 130, 246, 0.9),
+          rgba(37, 99, 235, 0.9)
+        ) !important;
         color: white !important;
       }
 
       .theme-green .message-content:not(.mine .message-content) {
-        background-color: #dcfce7 !important; /* green-100 */
+        background-color: rgba(
+          220,
+          252,
+          231,
+          0.9
+        ) !important; /* green-100 với opacity */
         color: #14532d !important; /* green-900 */
       }
 
       .theme-green .mine .message-content {
-        background: linear-gradient(to right, #10b981, #059669) !important;
+        background: linear-gradient(
+          to right,
+          rgba(16, 185, 129, 0.9),
+          rgba(5, 150, 105, 0.9)
+        ) !important;
         color: white !important;
       }
 
       .theme-purple .message-content:not(.mine .message-content) {
-        background-color: #f3e8ff !important; /* purple-100 */
+        background-color: rgba(
+          243,
+          232,
+          255,
+          0.9
+        ) !important; /* purple-100 với opacity */
         color: #4c1d95 !important; /* purple-900 */
       }
 
       .theme-purple .mine .message-content {
-        background: linear-gradient(to right, #8b5cf6, #7c3aed) !important;
+        background: linear-gradient(
+          to right,
+          rgba(139, 92, 246, 0.9),
+          rgba(124, 58, 237, 0.9)
+        ) !important;
         color: white !important;
       }
 
       .theme-dark .message-content:not(.mine .message-content) {
-        background-color: #374151 !important; /* gray-700 */
+        background-color: rgba(
+          55,
+          65,
+          81,
+          0.9
+        ) !important; /* gray-700 với opacity */
         color: #f9fafb !important; /* gray-50 */
       }
 
       .theme-dark .mine .message-content {
-        background: linear-gradient(to right, #1f2937, #111827) !important;
+        background: linear-gradient(
+          to right,
+          rgba(31, 41, 55, 0.9),
+          rgba(17, 24, 39, 0.9)
+        ) !important;
         color: white !important;
       }
 
       .theme-light .message-content:not(.mine .message-content) {
-        background-color: #f9fafb !important; /* gray-50 */
+        background-color: rgba(
+          249,
+          250,
+          251,
+          0.9
+        ) !important; /* gray-50 với opacity */
         color: #111827 !important; /* gray-900 */
       }
 
       .theme-light .mine .message-content {
-        background: linear-gradient(to right, #6b7280, #4b5563) !important;
+        background: linear-gradient(
+          to right,
+          rgba(107, 114, 128, 0.9),
+          rgba(75, 85, 99, 0.9)
+        ) !important;
         color: white !important;
+      }
+
+      /* CSS cho modal background để không bị vỡ */
+      #backgroundModal .modal-content {
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      /* Đảm bảo ảnh preview không quá lớn */
+      #currentBackgroundImg,
+      #previewBackground {
+        max-height: 200px;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      /* Style cho nút xóa ảnh nền */
+      #removeBackgroundBtn {
+        white-space: nowrap;
+        padding: 0.5rem 1rem;
+      }
+
+      /* Responsive fixes */
+      @media (max-width: 768px) {
+        .sidebar {
+          width: 100%;
+          position: absolute;
+          z-index: 50;
+          height: 100%;
+          background: white;
+          transform: translateX(-100%);
+          transition: transform 0.3s ease;
+        }
+
+        .sidebar.active {
+          transform: translateX(0);
+        }
+
+        .chat-area {
+          width: 100%;
+        }
+
+        .message-content {
+          max-width: 90% !important;
+        }
+
+        .mobile-menu-btn {
+          display: block !important;
+        }
+      }
+
+      /* Hide sidebar toggle button on desktop */
+      .mobile-menu-btn {
+        display: none;
+      }
+
+      /* Mobile responsive */
+      @media (max-width: 640px) {
+        .input-wrapper .emoji-btn {
+          right: 40px;
+        }
+
+        .input-wrapper .send-btn {
+          right: 5px;
+        }
+
+        #emojiPicker {
+          width: 280px;
+          right: 10px;
+          bottom: 70px;
+        }
+
+        .chat-header {
+          padding-left: 1rem;
+          padding-right: 1rem;
+        }
       }
     </style>
   </head>
@@ -409,13 +537,13 @@
       </div>
     </div>
 
-    <!-- Background Modal -->
+    <!-- Background Modal - ĐÃ SỬA CSS -->
     <div
       id="backgroundModal"
       class="fixed inset-0 z-40 bg-black/50 hidden items-center justify-center p-4"
     >
       <div
-        class="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl"
+        class="bg-white dark:bg-gray-800 p-6 rounded-2xl w-full max-w-md shadow-2xl modal-content"
       >
         <h3 class="text-xl font-bold mb-4 text-gray-800 dark:text-white">
           Chọn ảnh nền chat
@@ -738,7 +866,7 @@
       </div>
     </div>
 
-    <!-- Context menu cho sidebar -->
+    <!-- Context menu cho sidebar - ĐÃ ĐỔI TÊN -->
     <div
       id="sidebarContextMenu"
       class="fixed z-50 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 hidden min-w-[180px] py-2 dropdown-menu"
@@ -760,10 +888,10 @@
       <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
       <div
         class="context-menu-item hover:bg-red-50 dark:hover:bg-red-900/20 px-4 py-2 cursor-pointer flex items-center gap-3 text-red-600 dark:text-red-400"
-        onclick="deleteConversationFromSidebar()"
+        onclick="deleteConversationHistoryFromSidebar()"
       >
         <i data-lucide="trash-2" class="w-4 h-4"></i>
-        <span>Xóa hội thoại</span>
+        <span>Xóa lịch sử trò chuyện</span>
       </div>
     </div>
 
@@ -771,18 +899,27 @@
     <nav
       class="h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 bg-white dark:bg-gray-900 shadow-sm z-40"
     >
-      <div
-        class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-        onclick="location.href = '/'"
-      >
-        <i
-          data-lucide="arrow-left"
-          class="w-6 h-6 text-gray-700 dark:text-gray-300"
-        ></i>
-        <span
-          class="font-bold text-xl bg-gradient-to-r from-primary-600 to-blue-500 bg-clip-text text-transparent"
-          >Zalo Chat Pro</span
+      <div class="flex items-center gap-3">
+        <!-- Mobile menu button -->
+        <button
+          onclick="toggleSidebar()"
+          class="mobile-menu-btn p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors text-gray-700 dark:text-gray-300"
         >
+          <i data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+        <div
+          class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          onclick="location.href = '/'"
+        >
+          <i
+            data-lucide="arrow-left"
+            class="w-6 h-6 text-gray-700 dark:text-gray-300"
+          ></i>
+          <span
+            class="font-bold text-xl bg-gradient-to-r from-primary-600 to-blue-500 bg-clip-text text-transparent"
+            >Zalo Chat Pro</span
+          >
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -807,7 +944,8 @@
     <div class="flex-1 flex overflow-hidden">
       <!-- Sidebar -->
       <div
-        class="w-full md:w-1/3 lg:w-1/4 border-r border-gray-200 dark:border-gray-800 flex flex-col"
+        id="sidebar"
+        class="w-full md:w-1/3 lg:w-1/4 border-r border-gray-200 dark:border-gray-800 flex flex-col sidebar"
       >
         <div
           class="p-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
@@ -832,8 +970,17 @@
 
       <!-- Chat Area -->
       <div
-        class="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col"
+        class="flex-1 relative bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col chat-area"
       >
+        <!-- Mobile back button -->
+        <div
+          id="mobileBackBtn"
+          class="md:hidden absolute top-4 left-4 z-20 p-2 bg-white dark:bg-gray-800 rounded-full shadow-lg"
+          onclick="toggleSidebar()"
+        >
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        </div>
+
         <div
           id="welcome-screen"
           class="absolute inset-0 flex flex-col items-center justify-center bg-white dark:bg-gray-900 z-10"
@@ -859,7 +1006,7 @@
         >
           <!-- Chat Header -->
           <div
-            class="chat-header border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center px-6 justify-between"
+            class="chat-header border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center px-6 justify-between relative z-20"
           >
             <div class="flex items-center gap-3">
               <div class="relative">
@@ -908,7 +1055,7 @@
                 </button>
                 <div
                   id="moreOptionsDropdown"
-                  class="hidden absolute right-0 top-12 bg-white dark:bg-gray-800 shadow-2xl rounded-xl py-2 border border-gray-200 dark:border-gray-700 min-w-[200px] dropdown-menu"
+                  class="hidden absolute right-0 top-12 bg-white dark:bg-gray-800 shadow-2xl rounded-xl py-2 border border-gray-200 dark:border-gray-700 min-w-[200px] dropdown-menu z-30"
                 ></div>
               </div>
             </div>
@@ -917,7 +1064,7 @@
           <!-- Pinned Message -->
           <div
             id="pinnedMessageContainer"
-            class="hidden border-b border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-3"
+            class="hidden border-b border-yellow-200 dark:border-yellow-800 bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-3 relative z-20"
           >
             <div class="flex items-center gap-2 mb-1">
               <div class="p-1 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
@@ -947,15 +1094,18 @@
             ></div>
           </div>
 
-          <!-- Messages -->
-          <div
-            id="msgList"
-            class="flex-1 overflow-y-auto p-4 space-y-3 chat-messages-container scrollbar-thin"
-          ></div>
+          <!-- Messages Container với Background -->
+          <div class="flex-1 relative overflow-hidden">
+            <!-- Background sẽ được thêm vào đây bởi JavaScript -->
+            <div
+              id="msgList"
+              class="h-full overflow-y-auto p-4 space-y-3 chat-messages-container scrollbar-thin"
+            ></div>
+          </div>
 
           <!-- Message Input -->
           <div
-            class="message-input-container bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex gap-2 items-center px-4 py-2"
+            class="message-input-container bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 flex gap-2 items-center px-4 py-2 relative z-20"
           >
             <button
               onclick="document.getElementById('imgInput').click()"
@@ -972,7 +1122,7 @@
 
             <div
               id="previewArea"
-              class="hidden absolute bottom-16 left-6 bg-white dark:bg-gray-800 p-2 border border-gray-200 dark:border-gray-700 shadow-xl rounded-xl flex items-center gap-2"
+              class="hidden absolute bottom-16 left-6 bg-white dark:bg-gray-800 p-2 border border-gray-200 dark:border-gray-700 shadow-xl rounded-xl flex items-center gap-2 z-30"
             >
               <span
                 id="previewName"
@@ -1031,6 +1181,9 @@
       let selectedMessageForReaction = null;
       let currentBackgroundImage = null;
 
+      // Set để theo dõi tin nhắn đã render - FIX LỖI TRÙNG TIN NHẮN
+      let renderedMessageIds = new Set();
+
       // Áp dụng theme từ localStorage khi tải trang
       if (selectedTheme === "dark") {
         document.documentElement.classList.add("dark");
@@ -1052,6 +1205,37 @@
 
       function showToast(message, type = "info") {
         alert(message);
+      }
+
+      // --- TOGGLE SIDEBAR TRÊN MOBILE ---
+      function toggleSidebar() {
+        const sidebar = document.getElementById("sidebar");
+        const chatInterface = document.getElementById("chat-interface");
+        const welcomeScreen = document.getElementById("welcome-screen");
+        const mobileBackBtn = document.getElementById("mobileBackBtn");
+
+        if (window.innerWidth < 768) {
+          sidebar.classList.toggle("active");
+
+          if (sidebar.classList.contains("active")) {
+            // Hiển thị sidebar
+            if (chatInterface) chatInterface.classList.add("hidden");
+            if (welcomeScreen) welcomeScreen.classList.add("hidden");
+            if (mobileBackBtn) mobileBackBtn.classList.add("hidden");
+          } else {
+            // Ẩn sidebar, hiển thị chat nếu đang có cuộc trò chuyện
+            if (currentConvId && chatInterface) {
+              chatInterface.classList.remove("hidden");
+              if (welcomeScreen) welcomeScreen.classList.add("hidden");
+            } else {
+              if (welcomeScreen) welcomeScreen.classList.remove("hidden");
+            }
+
+            if (mobileBackBtn && currentConvId) {
+              mobileBackBtn.classList.remove("hidden");
+            }
+          }
+        }
       }
 
       // --- CHỨC NĂNG TOGGLE DARK MODE ---
@@ -1166,60 +1350,74 @@
         }
       }
 
-      // --- CONTEXT MENU CHO TIN NHẮN ---
-      document.addEventListener("contextmenu", function (e) {
-        const msgElement = e.target.closest(".message-item");
-        if (msgElement && currentConvId) {
-          e.preventDefault();
-          selectedMessageId = msgElement.dataset.messageId;
-          const menu = document.getElementById("messageContextMenu");
-          const pinItem = document.getElementById("pinMenuItem");
+      // --- CONTEXT MENU CHO TIN NHẮN - FIXED ---
+      function setupMessageContextMenu() {
+        const msgList = document.getElementById("msgList");
+        if (!msgList) return;
 
-          // Kiểm tra quyền
-          const msg = currentConv.messages?.find(
-            (m) => m.id == selectedMessageId,
-          );
-          if (msg) {
-            const recallItem = menu.querySelector(
-              '[onclick="recallMessage()"]',
+        // Sử dụng event delegation cho tin nhắn
+        msgList.addEventListener("contextmenu", function (e) {
+          const msgElement = e.target.closest(".message-item");
+          if (msgElement && currentConvId) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            selectedMessageId = msgElement.dataset.messageId;
+            const menu = document.getElementById("messageContextMenu");
+            const pinItem = document.getElementById("pinMenuItem");
+
+            // Kiểm tra quyền
+            const msg = currentConv.messages?.find(
+              (m) => m.id == selectedMessageId,
             );
-            const editItem = menu.querySelector('[onclick="editMessage()"]');
+            if (msg) {
+              const recallItem = menu.querySelector(
+                '[onclick="recallMessage()"]',
+              );
+              const editItem = menu.querySelector('[onclick="editMessage()"]');
 
-            // Chỉ hiện thu hồi và chỉnh sửa nếu là tin nhắn của mình
-            recallItem.style.display =
-              msg.sender_id === currentUser.id ? "flex" : "none";
-            editItem.style.display =
-              msg.sender_id === currentUser.id && !msg.file_type
-                ? "flex"
-                : "none";
+              // Chỉ hiện thu hồi và chỉnh sửa nếu là tin nhắn của mình
+              recallItem.style.display =
+                msg.sender_id === currentUser.id ? "flex" : "none";
+              editItem.style.display =
+                msg.sender_id === currentUser.id && !msg.file_type
+                  ? "flex"
+                  : "none";
 
-            // Cập nhật text cho nút ghim
-            const pinText = pinItem.querySelector("span");
-            pinText.textContent = msg.is_pinned ? "Bỏ ghim" : "Ghim";
+              // Cập nhật text cho nút ghim
+              const pinText = pinItem.querySelector("span");
+              pinText.textContent = msg.is_pinned ? "Bỏ ghim" : "Ghim";
+            }
+
+            // Tính toán vị trí
+            const menuWidth = 180;
+            const menuHeight = 200;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            let left = e.clientX;
+            let top = e.clientY;
+
+            if (left + menuWidth > viewportWidth) {
+              left = viewportWidth - menuWidth - 10;
+            }
+
+            if (top + menuHeight > viewportHeight) {
+              top = viewportHeight - menuHeight - 10;
+            }
+
+            menu.style.left = left + "px";
+            menu.style.top = top + "px";
+            menu.classList.remove("hidden");
+
+            // Ẩn các menu khác
+            document
+              .getElementById("sidebarContextMenu")
+              .classList.add("hidden");
+            document.getElementById("reactionPicker").classList.add("hidden");
           }
-
-          // Tính toán vị trí
-          const menuWidth = 180;
-          const menuHeight = 200;
-          const viewportWidth = window.innerWidth;
-          const viewportHeight = window.innerHeight;
-
-          let left = e.clientX;
-          let top = e.clientY;
-
-          if (left + menuWidth > viewportWidth) {
-            left = viewportWidth - menuWidth - 10;
-          }
-
-          if (top + menuHeight > viewportHeight) {
-            top = viewportHeight - menuHeight - 10;
-          }
-
-          menu.style.left = left + "px";
-          menu.style.top = top + "px";
-          menu.classList.remove("hidden");
-        }
-      });
+        });
+      }
 
       // Đóng menu khi click ra ngoài
       document.addEventListener("click", function (e) {
@@ -1253,6 +1451,8 @@
           const sidebarItem = e.target.closest("div[data-conv-id]");
           if (sidebarItem) {
             e.preventDefault();
+            e.stopPropagation();
+
             selectedSidebarItemId = sidebarItem.dataset.convId;
             const menu = document.getElementById("sidebarContextMenu");
 
@@ -1278,11 +1478,25 @@
             menu.style.left = left + "px";
             menu.style.top = top + "px";
             menu.classList.remove("hidden");
+
+            // Ẩn các menu khác
+            document
+              .getElementById("messageContextMenu")
+              .classList.add("hidden");
+            document.getElementById("reactionPicker").classList.add("hidden");
           }
         });
 
       // --- HÀM RENDER TIN NHẮN ---
       function renderMsg(msg) {
+        // KIỂM TRA TRÙNG TIN NHẮN - FIX LỖI TRÙNG
+        if (renderedMessageIds.has(msg.id)) {
+          console.log("Bỏ qua tin nhắn trùng:", msg.id);
+          return;
+        }
+
+        renderedMessageIds.add(msg.id);
+
         const box = document.getElementById("msgList");
         if (!box) return;
 
@@ -1295,7 +1509,8 @@
           div.classList.add("mine");
         }
 
-        let html = '<div class="flex items-end gap-2 max-w-[80%]">';
+        let html =
+          '<div class="flex items-end gap-2 max-w-[90%] sm:max-w-[80%]">';
 
         if (!isMe) {
           html += `<img src="${getAvatar(msg.sender_avatar)}" class="w-7 h-7 rounded-full mb-1 flex-shrink-0" />`;
@@ -1398,6 +1613,8 @@
 
         // Render lại tin nhắn
         msgElement.remove();
+        // Xóa khỏi set để có thể render lại
+        renderedMessageIds.delete(messageId);
         renderMsg(currentConv.messages[msgIndex]);
 
         // Cập nhật pinned message nếu cần
@@ -1558,17 +1775,25 @@
         }
       });
 
-      // Nhận tin nhắn mới
+      // Nhận tin nhắn mới - THÊM KIỂM TRA TRÙNG
       socket.on("receive_message", (msg) => {
         if (currentConvId == msg.conversation_id) {
-          if (!currentConv.messages) currentConv.messages = [];
-          currentConv.messages.push(msg);
-          renderMsg(msg);
+          // Kiểm tra xem tin nhắn đã tồn tại chưa
+          const existingMsg = currentConv.messages?.find(
+            (m) => m.id === msg.id,
+          );
+          if (!existingMsg) {
+            if (!currentConv.messages) currentConv.messages = [];
+            currentConv.messages.push(msg);
+            renderMsg(msg);
+          } else {
+            console.log("Tin nhắn đã tồn tại, bỏ qua:", msg.id);
+          }
         }
         loadSidebar();
       });
 
-      // --- CẬP NHẬT MENU 3 CHẤM ---
+      // --- CẬP NHẬT MENU 3 CHẤM - ĐÃ ĐỔI TÊN ---
       function toggleMoreOptions(event) {
         event?.stopPropagation();
         const menu = document.getElementById("moreOptionsDropdown");
@@ -1625,9 +1850,9 @@
                         <span>Đổi ảnh nền chat</span>
                     </a>
                     <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-                    <a href="#" onclick="deleteConversation()" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors">
+                    <a href="#" onclick="clearConversationHistory()" class="flex items-center gap-3 px-4 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-red-600 dark:text-red-400 transition-colors">
                         <i data-lucide="trash-2" class="w-5 h-5"></i>
-                        <span>Xóa hội thoại</span>
+                        <span>Xóa lịch sử trò chuyện</span>
                     </a>
                 </div>
             `;
@@ -1636,6 +1861,10 @@
         menu.innerHTML = html;
         lucide.createIcons();
         menu.classList.toggle("hidden");
+
+        // Ẩn các menu khác
+        document.getElementById("messageContextMenu").classList.add("hidden");
+        document.getElementById("sidebarContextMenu").classList.add("hidden");
       }
 
       // --- HÀM XEM HỒ SƠ ---
@@ -1819,12 +2048,14 @@
           const msgBox = document.getElementById("msgList");
           if (msgBox) {
             msgBox.innerHTML = "";
+            // Reset set rendered messages
+            renderedMessageIds.clear();
             currentConv.messages.forEach(renderMsg);
           }
         }
       }
 
-      // --- HÀM ĐỔI ẢNH NỀN ---
+      // --- HÀM ĐỔI ẢNH NỀN - ĐÃ SỬA ---
       function openBackgroundModal() {
         // Hiển thị ảnh nền hiện tại nếu có
         const currentBgImg = document.getElementById("currentBackgroundImg");
@@ -1884,16 +2115,15 @@
         }
       }
 
-      // Hàm áp dụng ảnh nền
+      // Hàm áp dụng ảnh nền - ĐÃ SỬA ĐỂ CHỈ NẰM TRONG KHUNG CHAT
       function applyBackground(filename) {
-        const msgList = document.getElementById("msgList");
-        if (!msgList) return;
+        const messagesContainer = document.querySelector(
+          ".chat-messages-container",
+        );
+        if (!messagesContainer) return;
 
         // Xóa background image cũ
-        msgList.style.backgroundImage = "";
-
-        // Xóa các div background cũ
-        const oldBackgrounds = msgList.querySelectorAll(
+        const oldBackgrounds = messagesContainer.parentElement.querySelectorAll(
           ".chat-background-image",
         );
         oldBackgrounds.forEach((bg) => bg.remove());
@@ -1903,7 +2133,10 @@
           const bgDiv = document.createElement("div");
           bgDiv.className = "chat-background-image";
           bgDiv.style.backgroundImage = `url('/static/uploads/backgrounds/${filename}')`;
-          msgList.appendChild(bgDiv);
+          messagesContainer.parentElement.insertBefore(
+            bgDiv,
+            messagesContainer,
+          );
 
           currentBackgroundImage = filename;
 
@@ -1970,7 +2203,7 @@
         headerName.textContent = displayName;
       }
 
-      // --- HÀM CHO SIDEBAR CONTEXT MENU ---
+      // --- HÀM CHO SIDEBAR CONTEXT MENU - ĐÃ ĐỔI TÊN ---
       function markAsUnread() {
         if (!selectedSidebarItemId) return;
         alert("Đã đánh dấu là chưa đọc (chức năng đang phát triển)");
@@ -1983,14 +2216,116 @@
         document.getElementById("sidebarContextMenu").classList.add("hidden");
       }
 
-      function deleteConversationFromSidebar() {
+      function deleteConversationHistoryFromSidebar() {
         if (!selectedSidebarItemId) return;
-        if (confirm("Xóa hội thoại này?")) {
-          fetch(`/chat/conversation/${selectedSidebarItemId}`, {
-            method: "DELETE",
-          }).then(() => location.reload());
+        if (
+          confirm(
+            "Xóa lịch sử trò chuyện này?\n\nLưu ý: Chỉ xóa lịch sử trò chuyện của bạn, người kia vẫn giữ nguyên tin nhắn.",
+          )
+        ) {
+          clearConversationHistoryForSidebar();
         }
         document.getElementById("sidebarContextMenu").classList.add("hidden");
+      }
+
+      // Hàm xóa lịch sử trò chuyện từ sidebar
+      async function clearConversationHistoryForSidebar() {
+        try {
+          const res = await fetch(
+            `/chat/conversation/${selectedSidebarItemId}/clear-history`,
+            {
+              method: "POST",
+            },
+          );
+
+          const data = await res.json();
+          if (data.success) {
+            alert("Đã xóa lịch sử trò chuyện");
+            // Nếu đang xem cuộc trò chuyện này, xóa tin nhắn trên giao diện
+            if (currentConvId == selectedSidebarItemId) {
+              const msgBox = document.getElementById("msgList");
+              if (msgBox) {
+                msgBox.innerHTML = "";
+                renderedMessageIds.clear();
+              }
+
+              // Xóa tin nhắn trong currentConv
+              if (currentConv) {
+                currentConv.messages = [];
+              }
+
+              // Ẩn pinned message
+              const pinnedContainer = document.getElementById(
+                "pinnedMessageContainer",
+              );
+              if (pinnedContainer) {
+                pinnedContainer.classList.add("hidden");
+              }
+            }
+
+            // Reload sidebar để cập nhật last message
+            loadSidebar();
+          }
+        } catch (e) {
+          console.error("Clear history error:", e);
+          alert("Lỗi khi xóa lịch sử trò chuyện");
+        }
+      }
+
+      // Hàm xóa lịch sử trò chuyện từ nút 3 chấm
+      async function clearConversationHistory() {
+        if (!currentConvId) return;
+        if (
+          !confirm(
+            "Xóa lịch sử trò chuyện này?\n\nLưu ý: Chỉ xóa lịch sử trò chuyện của bạn, người kia vẫn giữ nguyên tin nhắn.",
+          )
+        )
+          return;
+
+        try {
+          const res = await fetch(
+            `/chat/conversation/${currentConvId}/clear-history`,
+            {
+              method: "POST",
+            },
+          );
+
+          const data = await res.json();
+          if (data.success) {
+            alert("Đã xóa lịch sử trò chuyện");
+
+            // Xóa tin nhắn trên giao diện
+            const msgBox = document.getElementById("msgList");
+            if (msgBox) {
+              msgBox.innerHTML = "";
+              renderedMessageIds.clear();
+            }
+
+            // Xóa tin nhắn trong currentConv
+            if (currentConv) {
+              currentConv.messages = [];
+            }
+
+            // Ẩn pinned message
+            const pinnedContainer = document.getElementById(
+              "pinnedMessageContainer",
+            );
+            if (pinnedContainer) {
+              pinnedContainer.classList.add("hidden");
+            }
+
+            // Ẩn dropdown
+            document
+              .getElementById("moreOptionsDropdown")
+              .classList.add("hidden");
+
+            // Reload sidebar để cập nhật last message
+            loadSidebar();
+          }
+        } catch (e) {
+          console.error("Clear history error:", e);
+          alert("Lỗi khi xóa lịch sử trò chuyện");
+        }
       }
 
       // --- CORE CHAT FUNCTIONS ---
@@ -2006,7 +2341,13 @@
               const div = document.createElement("div");
               div.className = `p-3 flex gap-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors sidebar-item ${currentConvId == c.id ? "selected bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-500" : ""}`;
               div.dataset.convId = c.id;
-              div.onclick = () => loadChatContent(c.id);
+              div.onclick = () => {
+                loadChatContent(c.id);
+                // Trên mobile, tự động ẩn sidebar sau khi chọn chat
+                if (window.innerWidth < 768) {
+                  toggleSidebar();
+                }
+              };
 
               let preview = c.last_message
                 ? c.last_message.file_type
@@ -2058,12 +2399,22 @@
           if (data.success) {
             currentConv = data.conversation;
 
+            // Reset set rendered messages khi load chat mới
+            renderedMessageIds.clear();
+
             // Ẩn màn hình chào, hiện giao diện chat
             document.getElementById("welcome-screen").classList.add("hidden");
             document
               .getElementById("chat-interface")
               .classList.remove("hidden");
             document.getElementById("chat-interface").classList.add("flex");
+
+            // Hiển thị nút back trên mobile
+            if (window.innerWidth < 768) {
+              document
+                .getElementById("mobileBackBtn")
+                .classList.remove("hidden");
+            }
 
             // CẬP NHẬT HIỂN THỊ TÊN VỚI BIỆT DANH
             updateHeaderDisplay();
@@ -2225,14 +2576,6 @@
         });
         const data = await res.json();
         if (data.success) location.reload();
-      }
-
-      async function deleteConversation() {
-        if (!confirm("Xóa hội thoại này?")) return;
-        await fetch(`/chat/conversation/${currentConvId}`, {
-          method: "DELETE",
-        });
-        location.reload();
       }
 
       // --- REACTION FUNCTIONS ---
@@ -2416,6 +2759,47 @@
         }
       }
 
+      // --- XỬ LÝ RESPONSIVE KHI RESIZE ---
+      window.addEventListener("resize", function () {
+        if (window.innerWidth >= 768) {
+          // Desktop: hiển thị cả sidebar và chat
+          const sidebar = document.getElementById("sidebar");
+          const mobileBackBtn = document.getElementById("mobileBackBtn");
+
+          if (sidebar) {
+            sidebar.classList.remove("active");
+            sidebar.style.transform = "";
+          }
+
+          if (mobileBackBtn) {
+            mobileBackBtn.classList.add("hidden");
+          }
+        } else {
+          // Mobile: điều chỉnh hiển thị
+          const sidebar = document.getElementById("sidebar");
+          const chatInterface = document.getElementById("chat-interface");
+          const welcomeScreen = document.getElementById("welcome-screen");
+          const mobileBackBtn = document.getElementById("mobileBackBtn");
+
+          if (sidebar && sidebar.classList.contains("active")) {
+            // Đang hiển thị sidebar
+            if (chatInterface) chatInterface.classList.add("hidden");
+            if (welcomeScreen) welcomeScreen.classList.add("hidden");
+            if (mobileBackBtn) mobileBackBtn.classList.add("hidden");
+          } else {
+            // Đang hiển thị chat hoặc welcome
+            if (currentConvId && chatInterface) {
+              chatInterface.classList.remove("hidden");
+              if (welcomeScreen) welcomeScreen.classList.add("hidden");
+              if (mobileBackBtn) mobileBackBtn.classList.remove("hidden");
+            } else {
+              if (welcomeScreen) welcomeScreen.classList.remove("hidden");
+              if (mobileBackBtn) mobileBackBtn.classList.add("hidden");
+            }
+          }
+        }
+      });
+
       // --- INIT ---
       async function init() {
         try {
@@ -2464,6 +2848,9 @@
             }
           });
 
+          // Thiết lập context menu cho tin nhắn
+          setupMessageContextMenu();
+
           await loadSidebar();
 
           const params = new URLSearchParams(location.search);
@@ -2472,6 +2859,11 @@
             const r = await fetch(`/chat/find-or-create/${targetId}`);
             const d = await r.json();
             if (d.success) loadChatContent(d.conversation_id);
+          }
+
+          // Ẩn nút back trên desktop
+          if (window.innerWidth >= 768) {
+            document.getElementById("mobileBackBtn").classList.add("hidden");
           }
         } catch (e) {
           console.error("Init error:", e);

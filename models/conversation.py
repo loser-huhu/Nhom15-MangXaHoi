@@ -35,13 +35,20 @@ class Conversation(db.Model):
         
         # Nếu là nhóm, tên là title, nếu là chat 1-1 thì tên là người còn lại
         if not self.is_group and current_user_id:
+            other_user = None
             for user in self.users:
                 if user.id != current_user_id:
-                    data['name'] = user.name
-                    data['avatar'] = user.avatar_url
+                    other_user = user
                     break
+            
+            if other_user:
+                data['name'] = other_user.name or "Người dùng"
+                data['avatar'] = other_user.avatar_url
+            else:
+                data['name'] = "Người dùng"
+                data['avatar'] = None
         else:
-            data['name'] = self.title
+            data['name'] = self.title or "Nhóm chat"
             data['avatar'] = self.avatar_url
             
         return data
