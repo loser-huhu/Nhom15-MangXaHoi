@@ -3,227 +3,610 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Zalo Clone - Đăng nhập</title>
+    <title>ChatX - Đăng nhập & Đăng ký</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Animate.css -->
+    <!-- Font Awesome -->
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
       .gradient-bg {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
       }
-      .input-ring:focus {
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      .card-shadow {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+      .input-focus:focus {
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        border-color: #667eea;
+      }
+      .password-toggle {
+        cursor: pointer;
+        color: #6b7280;
+        transition: color 0.2s;
+      }
+      .password-toggle:hover {
+        color: #667eea;
+      }
+      .tab-active {
+        color: #667eea;
+        border-bottom: 2px solid #667eea;
+        font-weight: 600;
+      }
+      .tab-inactive {
+        color: #6b7280;
+        border-bottom: 2px solid transparent;
+        font-weight: 500;
+      }
+      .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .password-strength-meter {
+        height: 4px;
+        border-radius: 2px;
+        margin-top: 4px;
+        transition: all 0.3s ease;
+      }
+      .password-rule {
+        transition: all 0.3s ease;
+      }
+      .password-rule.valid {
+        color: #10b981;
+      }
+      .password-rule.invalid {
+        color: #6b7280;
       }
     </style>
   </head>
-  <body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+  <body class="gradient-bg flex items-center justify-center p-4">
     <div class="w-full max-w-md">
-      <div
-        class="bg-white rounded-2xl shadow-2xl p-8 animate__animated animate__fadeIn"
-      >
-        <!-- Logo -->
+      <div class="bg-white rounded-xl card-shadow p-8">
+        <!-- Logo và tên ứng dụng -->
         <div class="text-center mb-8">
           <div
-            class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4"
+            class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl mb-4"
           >
-            <i data-lucide="message-circle" class="w-8 h-8 text-blue-600"></i>
+            <i class="fas fa-comments text-white text-3xl"></i>
           </div>
-          <h1 class="text-3xl font-bold text-gray-800">Zalo Clone</h1>
-          <p class="text-gray-600 mt-2">Kết nối và trò chuyện mọi lúc</p>
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">ChatX</h1>
+          <p class="text-gray-600">Kết nối và trò chuyện không giới hạn</p>
         </div>
 
         <!-- Tabs -->
-        <div class="flex border-b mb-6">
+        <div class="flex mb-6 border-b">
           <button
             id="loginTab"
-            class="flex-1 py-3 text-center font-medium text-blue-600 border-b-2 border-blue-600"
+            class="flex-1 py-3 text-center font-medium tab-active text-lg"
           >
-            Đăng nhập
+            <i class="fas fa-sign-in-alt mr-2"></i>Đăng nhập
           </button>
           <button
             id="registerTab"
-            class="flex-1 py-3 text-center font-medium text-gray-500"
+            class="flex-1 py-3 text-center font-medium tab-inactive text-lg"
           >
-            Đăng ký
+            <i class="fas fa-user-plus mr-2"></i>Đăng ký
           </button>
         </div>
 
         <!-- Login Form -->
-        <form id="loginForm" class="space-y-4">
+        <form id="loginForm" class="space-y-5">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Số điện thoại</label
-            >
-            <div class="relative">
-              <div
-                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-              >
-                <i data-lucide="phone" class="w-5 h-5 text-gray-400"></i>
-              </div>
-              <input
-                type="tel"
-                id="loginPhone"
-                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-ring"
-                placeholder="Nhập số điện thoại"
-                required
-              />
-            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-phone mr-2"></i>Số điện thoại
+            </label>
+            <input
+              type="tel"
+              id="loginPhone"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none input-focus"
+              placeholder="Nhập số điện thoại"
+              required
+              pattern="[0-9]{10,11}"
+              title="Vui lòng nhập số điện thoại hợp lệ (10-11 số)"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Mật khẩu</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-lock mr-2"></i>Mật khẩu
+            </label>
             <div class="relative">
-              <div
-                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-              >
-                <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-              </div>
               <input
                 type="password"
                 id="loginPassword"
-                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-ring"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none input-focus pr-12"
                 placeholder="Nhập mật khẩu"
                 required
               />
+              <button
+                type="button"
+                class="password-toggle absolute right-4 top-1/2 transform -translate-y-1/2"
+                onclick="togglePassword('loginPassword', this)"
+              >
+                <i class="far fa-eye"></i>
+              </button>
             </div>
           </div>
 
           <button
             type="submit"
-            class="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition duration-200 flex items-center justify-center"
+            id="loginSubmitBtn"
+            class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center text-base shadow-md"
           >
-            <i data-lucide="log-in" class="w-5 h-5 mr-2"></i>
-            Đăng nhập
+            <span id="loginText">
+              <i class="fas fa-sign-in-alt mr-3"></i>Đăng nhập
+            </span>
+            <span id="loginLoading" class="hidden">
+              <div class="loading-spinner mr-3"></div>
+              Đang xử lý...
+            </span>
           </button>
         </form>
 
         <!-- Register Form -->
-        <form id="registerForm" class="space-y-4 hidden">
+        <form id="registerForm" class="space-y-5 hidden">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Số điện thoại</label
-            >
-            <div class="relative">
-              <div
-                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-              >
-                <i data-lucide="phone" class="w-5 h-5 text-gray-400"></i>
-              </div>
-              <input
-                type="tel"
-                id="registerPhone"
-                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-ring"
-                placeholder="Nhập số điện thoại"
-                required
-              />
-            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-phone mr-2"></i>Số điện thoại
+            </label>
+            <input
+              type="tel"
+              id="registerPhone"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none input-focus"
+              placeholder="Nhập số điện thoại"
+              required
+              pattern="[0-9]{10,11}"
+              title="Vui lòng nhập số điện thoại hợp lệ (10-11 số)"
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Họ và tên</label
-            >
-            <div class="relative">
-              <div
-                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-              >
-                <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
-              </div>
-              <input
-                type="text"
-                id="registerName"
-                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-ring"
-                placeholder="Nhập họ và tên"
-                required
-              />
-            </div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-user mr-2"></i>Họ và tên
+            </label>
+            <input
+              type="text"
+              id="registerName"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none input-focus"
+              placeholder="Nhập họ và tên đầy đủ"
+              required
+            />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Mật khẩu</label
-            >
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-lock mr-2"></i>Mật khẩu
+            </label>
             <div class="relative">
-              <div
-                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
-              >
-                <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-              </div>
               <input
                 type="password"
                 id="registerPassword"
-                class="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-ring"
-                placeholder="Nhập mật khẩu"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none input-focus pr-12"
+                placeholder="Tạo mật khẩu mạnh"
                 required
+                oninput="validatePasswordStrength()"
               />
+              <button
+                type="button"
+                class="password-toggle absolute right-4 top-1/2 transform -translate-y-1/2"
+                onclick="togglePassword('registerPassword', this)"
+              >
+                <i class="far fa-eye"></i>
+              </button>
             </div>
+
+            <!-- Password strength meter -->
+            <div class="mt-3">
+              <div class="flex justify-between mb-1">
+                <span class="text-xs font-medium text-gray-600"
+                  >Độ mạnh mật khẩu:</span
+                >
+                <span
+                  id="passwordStrengthText"
+                  class="text-xs font-medium text-gray-600"
+                  >Yếu</span
+                >
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  id="passwordStrengthMeter"
+                  class="bg-red-500 h-2 rounded-full"
+                  style="width: 0%"
+                ></div>
+              </div>
+
+              <!-- Password rules -->
+              <div class="mt-3 space-y-1">
+                <div id="ruleLength" class="password-rule invalid text-xs">
+                  <i class="fas fa-circle mr-2 text-xs"></i>Ít nhất 8 ký tự
+                </div>
+                <div id="ruleUppercase" class="password-rule invalid text-xs">
+                  <i class="fas fa-circle mr-2 text-xs"></i>Có chữ cái viết hoa
+                  (A-Z)
+                </div>
+                <div id="ruleLowercase" class="password-rule invalid text-xs">
+                  <i class="fas fa-circle mr-2 text-xs"></i>Có chữ cái viết
+                  thường (a-z)
+                </div>
+                <div id="ruleNumber" class="password-rule invalid text-xs">
+                  <i class="fas fa-circle mr-2 text-xs"></i>Có ít nhất một số
+                  (0-9)
+                </div>
+                <div id="ruleSpecial" class="password-rule invalid text-xs">
+                  <i class="fas fa-circle mr-2 text-xs"></i>Có ký tự đặc biệt
+                  (!@#$%^&*)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-lock mr-2"></i>Xác nhận mật khẩu
+            </label>
+            <div class="relative">
+              <input
+                type="password"
+                id="registerConfirmPassword"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none input-focus pr-12"
+                placeholder="Nhập lại mật khẩu"
+                required
+                oninput="validatePasswordStrength()"
+              />
+              <button
+                type="button"
+                class="password-toggle absolute right-4 top-1/2 transform -translate-y-1/2"
+                onclick="togglePassword('registerConfirmPassword', this)"
+              >
+                <i class="far fa-eye"></i>
+              </button>
+            </div>
+            <div id="passwordMatch" class="mt-2 text-xs text-gray-500">
+              <i class="fas fa-circle mr-2 text-xs"></i>Mật khẩu phải khớp
+            </div>
+          </div>
+
+          <div class="flex items-start pt-2">
+            <input
+              type="checkbox"
+              id="termsCheckbox"
+              class="h-5 w-5 text-blue-600 rounded focus:ring-blue-500 mt-0.5"
+              required
+              onchange="validatePasswordStrength()"
+            />
+            <label
+              for="termsCheckbox"
+              class="ml-3 text-sm text-gray-700 leading-tight"
+            >
+              Tôi đồng ý với
+              <a href="#" class="text-blue-600 hover:text-blue-800 font-medium"
+                >Điều khoản dịch vụ</a
+              >
+              và
+              <a href="#" class="text-blue-600 hover:text-blue-800 font-medium"
+                >Chính sách bảo mật</a
+              >
+            </label>
           </div>
 
           <button
             type="submit"
-            class="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition duration-200 flex items-center justify-center"
+            id="registerSubmitBtn"
+            class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center text-base shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled
           >
-            <i data-lucide="user-plus" class="w-5 h-5 mr-2"></i>
-            Đăng ký tài khoản
+            <span id="registerText">
+              <i class="fas fa-user-plus mr-3"></i>Đăng ký tài khoản
+            </span>
+            <span id="registerLoading" class="hidden">
+              <div class="loading-spinner mr-3"></div>
+              Đang xử lý...
+            </span>
           </button>
         </form>
 
         <!-- Status Message -->
-        <div id="statusMessage" class="mt-4 text-center text-sm hidden"></div>
+        <div
+          id="statusMessage"
+          class="mt-6 p-4 rounded-lg text-center text-sm hidden"
+        ></div>
       </div>
 
       <p class="text-white text-center mt-6 text-sm opacity-90">
-        © 2024 Zalo Clone. Kết nối mọi người.
+        <i class="far fa-copyright mr-2"></i> 2024 ChatX. Mọi quyền được bảo
+        lưu.
       </p>
     </div>
 
     <script>
-      // Initialize Lucide icons
-      lucide.createIcons();
-
       // DOM Elements
       const loginTab = document.getElementById("loginTab");
       const registerTab = document.getElementById("registerTab");
       const loginForm = document.getElementById("loginForm");
       const registerForm = document.getElementById("registerForm");
       const statusMessage = document.getElementById("statusMessage");
+      const loginSubmitBtn = document.getElementById("loginSubmitBtn");
+      const registerSubmitBtn = document.getElementById("registerSubmitBtn");
+      const termsCheckbox = document.getElementById("termsCheckbox");
+
+      let isLoginActive = true;
 
       // Tab switching
       loginTab.addEventListener("click", () => {
-        loginTab.classList.add("text-blue-600", "border-blue-600");
-        loginTab.classList.remove("text-gray-500");
-        registerTab.classList.add("text-gray-500");
-        registerTab.classList.remove("text-blue-600", "border-blue-600");
-        loginForm.classList.remove("hidden");
-        registerForm.classList.add("hidden");
+        if (isLoginActive) return;
+        switchToLogin();
       });
 
       registerTab.addEventListener("click", () => {
-        registerTab.classList.add("text-blue-600", "border-blue-600");
-        registerTab.classList.remove("text-gray-500");
-        loginTab.classList.add("text-gray-500");
-        loginTab.classList.remove("text-blue-600", "border-blue-600");
+        if (!isLoginActive) return;
+        switchToRegister();
+      });
+
+      function switchToLogin() {
+        isLoginActive = true;
+        loginTab.classList.remove("tab-inactive");
+        loginTab.classList.add("tab-active");
+        registerTab.classList.remove("tab-active");
+        registerTab.classList.add("tab-inactive");
+        loginForm.classList.remove("hidden");
+        registerForm.classList.add("hidden");
+        clearStatusMessage();
+      }
+
+      function switchToRegister() {
+        isLoginActive = false;
+        registerTab.classList.remove("tab-inactive");
+        registerTab.classList.add("tab-active");
+        loginTab.classList.remove("tab-active");
+        loginTab.classList.add("tab-inactive");
         registerForm.classList.remove("hidden");
         loginForm.classList.add("hidden");
-      });
+        clearStatusMessage();
+      }
+
+      // Toggle password visibility
+      function togglePassword(inputId, button) {
+        const input = document.getElementById(inputId);
+        const icon = button.querySelector("i");
+
+        if (input.type === "password") {
+          input.type = "text";
+          icon.classList.remove("fa-eye");
+          icon.classList.add("fa-eye-slash");
+        } else {
+          input.type = "password";
+          icon.classList.remove("fa-eye-slash");
+          icon.classList.add("fa-eye");
+        }
+      }
+
+      // Validate password strength
+      function validatePasswordStrength() {
+        const password = document.getElementById("registerPassword").value;
+        const confirmPassword = document.getElementById(
+          "registerConfirmPassword",
+        ).value;
+
+        // Reset all rules
+        const rules = {
+          length: document.getElementById("ruleLength"),
+          uppercase: document.getElementById("ruleUppercase"),
+          lowercase: document.getElementById("ruleLowercase"),
+          number: document.getElementById("ruleNumber"),
+          special: document.getElementById("ruleSpecial"),
+        };
+
+        const passwordMatch = document.getElementById("passwordMatch");
+        const strengthMeter = document.getElementById("passwordStrengthMeter");
+        const strengthText = document.getElementById("passwordStrengthText");
+
+        let score = 0;
+        let totalRules = 5;
+
+        // Check length (8+ characters)
+        if (password.length >= 8) {
+          rules.length.classList.remove("invalid");
+          rules.length.classList.add("valid");
+          rules.length.innerHTML =
+            '<i class="fas fa-check-circle mr-2 text-green-500 text-xs"></i>Ít nhất 8 ký tự';
+          score++;
+        } else {
+          rules.length.classList.remove("valid");
+          rules.length.classList.add("invalid");
+          rules.length.innerHTML =
+            '<i class="fas fa-circle mr-2 text-xs"></i>Ít nhất 8 ký tự';
+        }
+
+        // Check uppercase
+        if (/[A-Z]/.test(password)) {
+          rules.uppercase.classList.remove("invalid");
+          rules.uppercase.classList.add("valid");
+          rules.uppercase.innerHTML =
+            '<i class="fas fa-check-circle mr-2 text-green-500 text-xs"></i>Có chữ cái viết hoa (A-Z)';
+          score++;
+        } else {
+          rules.uppercase.classList.remove("valid");
+          rules.uppercase.classList.add("invalid");
+          rules.uppercase.innerHTML =
+            '<i class="fas fa-circle mr-2 text-xs"></i>Có chữ cái viết hoa (A-Z)';
+        }
+
+        // Check lowercase
+        if (/[a-z]/.test(password)) {
+          rules.lowercase.classList.remove("invalid");
+          rules.lowercase.classList.add("valid");
+          rules.lowercase.innerHTML =
+            '<i class="fas fa-check-circle mr-2 text-green-500 text-xs"></i>Có chữ cái viết thường (a-z)';
+          score++;
+        } else {
+          rules.lowercase.classList.remove("valid");
+          rules.lowercase.classList.add("invalid");
+          rules.lowercase.innerHTML =
+            '<i class="fas fa-circle mr-2 text-xs"></i>Có chữ cái viết thường (a-z)';
+        }
+
+        // Check number
+        if (/\d/.test(password)) {
+          rules.number.classList.remove("invalid");
+          rules.number.classList.add("valid");
+          rules.number.innerHTML =
+            '<i class="fas fa-check-circle mr-2 text-green-500 text-xs"></i>Có ít nhất một số (0-9)';
+          score++;
+        } else {
+          rules.number.classList.remove("valid");
+          rules.number.classList.add("invalid");
+          rules.number.innerHTML =
+            '<i class="fas fa-circle mr-2 text-xs"></i>Có ít nhất một số (0-9)';
+        }
+
+        // Check special character
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+          rules.special.classList.remove("invalid");
+          rules.special.classList.add("valid");
+          rules.special.innerHTML =
+            '<i class="fas fa-check-circle mr-2 text-green-500 text-xs"></i>Có ký tự đặc biệt (!@#$%^&*)';
+          score++;
+        } else {
+          rules.special.classList.remove("valid");
+          rules.special.classList.add("invalid");
+          rules.special.innerHTML =
+            '<i class="fas fa-circle mr-2 text-xs"></i>Có ký tự đặc biệt (!@#$%^&*)';
+        }
+
+        // Update password strength meter
+        const percentage = (score / totalRules) * 100;
+        strengthMeter.style.width = `${percentage}%`;
+
+        if (percentage < 40) {
+          strengthMeter.className = "bg-red-500 h-2 rounded-full";
+          strengthText.textContent = "Yếu";
+          strengthText.className = "text-xs font-medium text-red-600";
+        } else if (percentage < 80) {
+          strengthMeter.className = "bg-yellow-500 h-2 rounded-full";
+          strengthText.textContent = "Trung bình";
+          strengthText.className = "text-xs font-medium text-yellow-600";
+        } else {
+          strengthMeter.className = "bg-green-500 h-2 rounded-full";
+          strengthText.textContent = "Mạnh";
+          strengthText.className = "text-xs font-medium text-green-600";
+        }
+
+        // Check password match
+        if (password && confirmPassword) {
+          if (password === confirmPassword) {
+            passwordMatch.innerHTML =
+              '<i class="fas fa-check-circle mr-2 text-green-500 text-xs"></i>Mật khẩu khớp';
+            passwordMatch.classList.remove("text-red-500", "text-gray-500");
+            passwordMatch.classList.add("text-green-600");
+          } else {
+            passwordMatch.innerHTML =
+              '<i class="fas fa-times-circle mr-2 text-red-500 text-xs"></i>Mật khẩu không khớp';
+            passwordMatch.classList.remove("text-green-600", "text-gray-500");
+            passwordMatch.classList.add("text-red-500");
+          }
+        } else {
+          passwordMatch.innerHTML =
+            '<i class="fas fa-circle mr-2 text-xs"></i>Mật khẩu phải khớp';
+          passwordMatch.classList.remove("text-green-600", "text-red-500");
+          passwordMatch.classList.add("text-gray-500");
+        }
+
+        // Enable/disable register button
+        const isPasswordValid =
+          score === totalRules && password === confirmPassword;
+        registerSubmitBtn.disabled = !isPasswordValid || !termsCheckbox.checked;
+      }
 
       // Show status message
       function showMessage(message, type = "error") {
         statusMessage.textContent = message;
-        statusMessage.className = `mt-4 text-center text-sm ${type === "error" ? "text-red-600" : "text-green-600"}`;
+        statusMessage.className = "mt-6 p-4 rounded-lg text-center text-sm";
+
+        if (type === "error") {
+          statusMessage.classList.add(
+            "bg-red-50",
+            "text-red-700",
+            "border",
+            "border-red-200",
+          );
+        } else if (type === "success") {
+          statusMessage.classList.add(
+            "bg-green-50",
+            "text-green-700",
+            "border",
+            "border-green-200",
+          );
+        } else {
+          statusMessage.classList.add(
+            "bg-blue-50",
+            "text-blue-700",
+            "border",
+            "border-blue-200",
+          );
+        }
+
         statusMessage.classList.remove("hidden");
 
         setTimeout(() => {
-          statusMessage.classList.add("hidden");
-        }, 5000);
+          statusMessage.classList.add(
+            "opacity-0",
+            "transition-opacity",
+            "duration-500",
+          );
+          setTimeout(() => {
+            statusMessage.classList.add("hidden");
+            statusMessage.classList.remove(
+              "opacity-0",
+              "transition-opacity",
+              "duration-500",
+            );
+          }, 500);
+        }, 4000);
+      }
+
+      // Clear status message
+      function clearStatusMessage() {
+        statusMessage.classList.add("hidden");
+        statusMessage.textContent = "";
+      }
+
+      // Show loading
+      function showLoading(isLogin = true) {
+        if (isLogin) {
+          document.getElementById("loginText").classList.add("hidden");
+          document.getElementById("loginLoading").classList.remove("hidden");
+          loginSubmitBtn.disabled = true;
+        } else {
+          document.getElementById("registerText").classList.add("hidden");
+          document.getElementById("registerLoading").classList.remove("hidden");
+          registerSubmitBtn.disabled = true;
+        }
+      }
+
+      // Hide loading
+      function hideLoading(isLogin = true) {
+        if (isLogin) {
+          document.getElementById("loginText").classList.remove("hidden");
+          document.getElementById("loginLoading").classList.add("hidden");
+          loginSubmitBtn.disabled = false;
+        } else {
+          document.getElementById("registerText").classList.remove("hidden");
+          document.getElementById("registerLoading").classList.add("hidden");
+          registerSubmitBtn.disabled = false;
+        }
       }
 
       // Handle login
@@ -237,6 +620,8 @@
           showMessage("Vui lòng nhập đầy đủ thông tin");
           return;
         }
+
+        showLoading(true);
 
         try {
           const response = await fetch("/auth/login", {
@@ -252,11 +637,18 @@
 
           const data = await response.json();
 
+          hideLoading(true);
+
           if (data.success) {
-            showMessage("Đăng nhập thành công!", "success");
+            showMessage(
+              "Đăng nhập thành công! Đang chuyển hướng...",
+              "success",
+            );
+
+            // Lưu thông tin user
             localStorage.setItem("user", JSON.stringify(data.user));
 
-            // Redirect to home page after 1 second
+            // Chuyển hướng
             setTimeout(() => {
               window.location.href = "/";
             }, 1000);
@@ -264,8 +656,9 @@
             showMessage(data.message || "Đăng nhập thất bại");
           }
         } catch (error) {
-          showMessage("Lỗi kết nối đến server");
+          hideLoading(true);
           console.error("Login error:", error);
+          showMessage("Lỗi kết nối đến server. Vui lòng thử lại sau.");
         }
       });
 
@@ -276,16 +669,36 @@
         const phone = document.getElementById("registerPhone").value.trim();
         const name = document.getElementById("registerName").value.trim();
         const password = document.getElementById("registerPassword").value;
+        const confirmPassword = document.getElementById(
+          "registerConfirmPassword",
+        ).value;
 
-        if (!phone || !name || !password) {
+        if (!phone || !name || !password || !confirmPassword) {
           showMessage("Vui lòng nhập đầy đủ thông tin");
           return;
         }
 
-        if (password.length < 6) {
-          showMessage("Mật khẩu phải có ít nhất 6 ký tự");
+        // Validate password strength on frontend
+        const passwordRegex =
+          /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+        if (!passwordRegex.test(password)) {
+          showMessage(
+            "Mật khẩu không đủ mạnh. Vui lòng kiểm tra các yêu cầu bên dưới.",
+          );
           return;
         }
+
+        if (password !== confirmPassword) {
+          showMessage("Mật khẩu xác nhận không khớp");
+          return;
+        }
+
+        if (!termsCheckbox.checked) {
+          showMessage("Vui lòng đồng ý với điều khoản dịch vụ");
+          return;
+        }
+
+        showLoading(false);
 
         try {
           const response = await fetch("/auth/register", {
@@ -302,11 +715,15 @@
 
           const data = await response.json();
 
+          hideLoading(false);
+
           if (data.success) {
-            showMessage("Đăng ký thành công!", "success");
+            showMessage("Đăng ký thành công! Đang đăng nhập...", "success");
+
+            // Lưu thông tin user
             localStorage.setItem("user", JSON.stringify(data.user));
 
-            // Auto login and redirect
+            // Chuyển hướng
             setTimeout(() => {
               window.location.href = "/";
             }, 1000);
@@ -314,8 +731,9 @@
             showMessage(data.message || "Đăng ký thất bại");
           }
         } catch (error) {
-          showMessage("Lỗi kết nối đến server");
+          hideLoading(false);
           console.error("Registration error:", error);
+          showMessage("Lỗi kết nối đến server. Vui lòng thử lại sau.");
         }
       });
 
@@ -330,7 +748,24 @@
             window.location.href = "/";
           }
         } catch (error) {
-          console.log("Not authenticated");
+          console.log("Không thể kiểm tra trạng thái đăng nhập");
+        }
+
+        // Auto-focus
+        document.getElementById("loginPhone").focus();
+      });
+
+      // Enter key navigation
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          const activeForm = isLoginActive ? loginForm : registerForm;
+          const submitButton = activeForm.querySelector(
+            'button[type="submit"]',
+          );
+
+          if (!submitButton.disabled) {
+            submitButton.click();
+          }
         }
       });
     </script>

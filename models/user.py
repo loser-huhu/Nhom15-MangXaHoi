@@ -1,8 +1,8 @@
-
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from extensions import db, login_manager
+import re
 
 class User(db.Model, UserMixin):
     __tablename__ = 'users'
@@ -36,6 +36,31 @@ class User(db.Model, UserMixin):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def update_last_seen(self):
+        """Cập nhật thời gian hoạt động cuối cùng"""
+        self.last_seen = datetime.utcnow()
+        db.session.commit()
+    
+    @staticmethod
+    def validate_password_strength(password):
+        """Kiểm tra độ mạnh của mật khẩu"""
+        if len(password) < 8:
+            return False, "Mật khẩu phải có ít nhất 8 ký tự"
+        
+        if not re.search(r'[A-Z]', password):
+            return False, "Mật khẩu phải có ít nhất một chữ cái viết hoa"
+        
+        if not re.search(r'[a-z]', password):
+            return False, "Mật khẩu phải có ít nhất một chữ cái viết thường"
+        
+        if not re.search(r'\d', password):
+            return False, "Mật khẩu phải có ít nhất một chữ số"
+        
+        if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+            return False, "Mật khẩu phải có ít nhất một ký tự đặc biệt"
+        
+        return True, "Mật khẩu hợp lệ"
     
     def to_dict(self):
         return {
